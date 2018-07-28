@@ -28,6 +28,7 @@ namespace PNG {
     bool isCritical() { return std::isupper(_type[0]); }
     bool isPublic() { return std::isupper(_type[1]); }
     bool isSafe() { return std::isupper(_type[3]); }
+    virtual ~Chunk() {}
   private:
     std::string const _type;
   };
@@ -60,6 +61,16 @@ namespace PNG {
 
 #define read(fs, p) _read((fs), (p), sizeof(p))
 #define readWithSize(fs, p, size) _read((fs), (p), (size))
+
+  template <typename To, typename From>
+  std::unique_ptr<To> dynamic_unique_cast(std::unique_ptr<From>&& p) {
+    if (To* cast = dynamic_cast<To*>(p.get())) {
+      std::unique_ptr<To> result(cast);
+      p.release();
+      return result;
+    }
+    return std::unique_ptr<To>(nullptr);
+  }
 
   bool readHeader(std::istream& fs) {
     Byte sig[8];
@@ -146,6 +157,7 @@ namespace PNG {
     }
 
     std::vector<std::unique_ptr<Chunk>> chunks = readChunks(fs);
-    PNG png{0, 0};
+    std::unique_ptr<IHDRChunk> ihdr = dynamic_unique_cast<IHDRChunk>(std::move(chunks[0]));
+    PNG png{ihdr->width(), ihdr->height()};
   }
 }
