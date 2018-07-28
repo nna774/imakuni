@@ -10,6 +10,17 @@
 #include "deflate.h"
 
 namespace PNG {
+  class PNG : public Image {
+  public:
+    PNG(size_t width, size_t height) : _width{width}, _height{height} {}
+    size_t width() { return _width; }
+    size_t height() { return _height; }
+    std::vector<Pixel> const& pixels() { }
+  private:
+    size_t const _width;
+    size_t const _height;
+  };
+
   class Chunk {
   public:
     Chunk(std::string const& type) : _type{type} {}
@@ -135,5 +146,6 @@ namespace PNG {
     }
 
     std::vector<std::unique_ptr<Chunk>> chunks = readChunks(fs);
+    PNG png{0, 0};
   }
 }
