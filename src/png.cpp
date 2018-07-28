@@ -23,7 +23,12 @@ namespace PNG {
 
   class IHDRChunk : public Chunk {
   public:
-    IHDRChunk() : Chunk{"IHDR"} {}
+    IHDRChunk(size_t width, size_t height) : Chunk{"IHDR"}, _width{width}, _height{height} {}
+    size_t width() { return _width; }
+    size_t height() { return _height; }
+  private:
+    size_t const _width;
+    size_t const _height;
   };
 
   void _read(std::istream& fs, char* p, size_t size) {
@@ -60,12 +65,17 @@ namespace PNG {
   }
 
   std::unique_ptr<Chunk> readIHDR(std::istream& fs) {
-    int width = readSize(fs);
-    int height = readSize(fs);
+    size_t width = readSize(fs);
+    size_t height = readSize(fs);
     std::cout << width << ' ' << height;
     Byte other[9];
     read(fs, other);
-    return std::unique_ptr<Chunk>{new IHDRChunk{}};
+    return std::unique_ptr<Chunk>{
+      new IHDRChunk{
+        width,
+        height,
+      }
+    };
   }
 
   std::unique_ptr<Chunk> readIDAT(std::istream& fs, size_t size) {
