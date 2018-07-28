@@ -5,7 +5,7 @@ LIB_DIR := ../lib
 SRCS := main.cpp png.cpp deflate.cpp
 OBJS := $(SRCS:%.cpp=%.o)
 DEPS := $(SRCS:%.cpp=%.d)
-CFLAGS := -Wall -Wextra -I$(LIB_DIR)
+CFLAGS := -Wall -Wextra
 -include $(DEPS)
 
 all: build
@@ -17,6 +17,9 @@ $(TARGET): $(OBJS)
 
 %.o: %.cpp
 	$(CXX) $(CFLAGS) -c -MMD -MP $<
+
+deflate.o:
+	$(CXX) -I$(LIB_DIR) -c -MMD -MP deflate.cpp
 
 clean:
 	$(RM) $(TARGET) $(OBJS) $(DEPS)
