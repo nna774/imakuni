@@ -6,8 +6,7 @@ class Pixel {
 
 class Image {
 public:
-  Image();
-  size_t width();
-  size_t height();
-  std::vector<Pixel> pixels();
+  virtual size_t width() = 0;
+  virtual size_t height() = 0;
+  virtual std::vector<Pixel> const& pixels() = 0;
 };
