@@ -9,6 +9,9 @@
 #include "byte.h"
 #include "deflate.h"
 
+using std::begin;
+using std::end;
+
 namespace PNG {
   class PNG : public Image {
   public:
