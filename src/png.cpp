@@ -121,7 +121,6 @@ namespace PNG {
   }
 
   std::unique_ptr<Image> load(std::istream& fs) {
-    Byte sig[8];
     if(!readHeader(fs)) {
       std::cerr << "not png file" << std::endl;
       return nullptr;
