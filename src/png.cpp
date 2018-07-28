@@ -38,14 +38,39 @@ namespace PNG {
 
   class IHDRChunk : public Chunk {
   public:
-    IHDRChunk(size_t width, size_t height, int depth) : Chunk{"IHDR"}, _width{width}, _height{height}, _depth{depth} {}
+    IHDRChunk(
+      size_t width,
+      size_t height,
+      int depth,
+      int colorType,
+      int compression,
+      int filter,
+      int interlace
+      ) :
+      Chunk{"IHDR"},
+      _width{width},
+      _height{height},
+      _depth{depth},
+      _colorType{colorType},
+      _compression{compression},
+      _filter{filter},
+      _interlace{interlace}
+    {}
     size_t width() { return _width; }
     size_t height() { return _height; }
     int depth() { return _depth; }
+    int colorType() { return _colorType; }
+    int compression() { return _compression; }
+    int filter() { return _filter; }
+    int interlace() { return _interlace; }
   private:
     size_t const _width;
     size_t const _height;
     int const _depth;
+    int const _colorType;
+    int const _compression;
+    int const _filter;
+    int const _interlace;
   };
 
   class IDATChunk : public Chunk {
@@ -106,9 +131,7 @@ namespace PNG {
   std::unique_ptr<Chunk> readIHDR(std::istream& fs) {
     size_t width = readSize(fs);
     size_t height = readSize(fs);
-    Byte depth;
-    read(fs, depth);
-    Byte others[4];
+    Byte others[5];
     read(fs, others);
     char crc[4];
     read(fs, crc);
@@ -116,7 +139,11 @@ namespace PNG {
       new IHDRChunk{
         width,
         height,
-        static_cast<int>(depth),
+        others[0], // depth
+        others[1], // color type
+        others[2], // compression method
+        others[3], // filter method
+        others[4], // interlace method
       }
     };
   }
