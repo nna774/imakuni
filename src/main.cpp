@@ -12,8 +12,9 @@ namespace PNM {
     os << width << ' ' << height << std::endl;
     os << 255 << std::endl;
     for(auto e: ps) {
-      os << static_cast<int>(e.r) << ' ' << static_cast<int>(e.g) << ' ' << static_cast<int>(e.b) << std::endl;
+      os << static_cast<int>(e.r) << ' ' << static_cast<int>(e.g) << ' ' << static_cast<int>(e.b) << '\n';
     }
+    std::flush(os);
     return std::move(img);
   }
 }
