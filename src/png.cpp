@@ -6,10 +6,10 @@
 #include <cassert>
 
 #include "png.h"
+#include "byte.h"
+#include "deflate.h"
 
 namespace PNG {
-  using Byte = unsigned char;
-
   class Chunk {
   public:
     Chunk(std::string const& type) : _type{type} {}
