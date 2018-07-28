@@ -31,6 +31,14 @@ namespace PNG {
     size_t const _height;
   };
 
+  class IDATChunk : public Chunk {
+  public:
+    IDATChunk(std::vector<Byte> const& data) : Chunk{"IDAT"}, _data{data} {}
+    std::vector<Byte> const& data() { return _data; }
+  private:
+    std::vector<Byte> const _data;
+  };
+
   void _read(std::istream& fs, char* p, size_t size) {
     fs.read(p, size);
   }
@@ -83,7 +91,7 @@ namespace PNG {
     readWithSize(fs, data.data(), size);
     char crc[4];
     read(fs, crc);
-    return std::unique_ptr<Chunk>{new Chunk{"IDAT"}};
+    return std::unique_ptr<Chunk>{new IDATChunk{data}};
   }
 
   std::unique_ptr<Chunk> readIEND(std::istream& fs) {
