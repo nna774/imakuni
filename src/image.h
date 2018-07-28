@@ -1,7 +1,11 @@
 #include <vector>
+
+#include "byte.h"
+
 #pragma once
 
-class Pixel {
+struct Pixel {
+  Byte r, g, b;
 };
 
 class Image {
