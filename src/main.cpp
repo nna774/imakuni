@@ -15,5 +15,7 @@ int main(int argc, char** argv) {
   } else {
     img = PNG::load(std::cin);
   }
+
+  std::cout << img->width() << ' ' << img->height() << std::endl;
   return 0;
 }

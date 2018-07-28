@@ -158,6 +158,7 @@ namespace PNG {
 
     std::vector<std::unique_ptr<Chunk>> chunks = readChunks(fs);
     std::unique_ptr<IHDRChunk> ihdr = dynamic_unique_cast<IHDRChunk>(std::move(chunks[0]));
-    PNG png{ihdr->width(), ihdr->height()};
+    PNG* png = new PNG{ihdr->width(), ihdr->height()};
+    return std::unique_ptr<Image>{png};
   }
 }
