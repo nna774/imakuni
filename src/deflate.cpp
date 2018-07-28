@@ -3,7 +3,7 @@
 #include "miniz.c"
 
 namespace Deflate {
-  std::vector<Byte> decompress(std::vector<Byte> src) {
+  std::vector<Byte> decompress(std::vector<Byte> const& src) {
     std::vector<Byte> v;
     unsigned long size = src.size() * 100; //
     Byte *buf = new Byte[size];
