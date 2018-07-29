@@ -175,9 +175,12 @@ namespace PNG {
       return readIDAT(fs, size);
     } else if(type == "IEND") {
       return readIEND(fs);
+    } else {
+      std::cerr << "unknown chunk type: " << type << std::endl;
+      std::cerr << "size: " << size << std::endl;
+      fs.ignore(size + 4); // 4 is crc
+      return std::unique_ptr<Chunk>{new Chunk{type}};
     }
-    std::cerr << type << std::endl;
-    assert(!"unknown chunk");
   }
 
   std::vector<std::unique_ptr<Chunk>> readChunks(std::istream& fs) {
