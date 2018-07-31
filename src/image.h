@@ -10,7 +10,12 @@ struct Pixel {
 
 class Image {
 public:
-  virtual size_t width() = 0;
-  virtual size_t height() = 0;
-  virtual std::vector<Pixel> const& pixels() = 0;
+  Image(size_t width, size_t height, std::vector<Pixel> pixels) : _width{width}, _height{height}, _pixels{pixels} {}
+  size_t width() { return _width; }
+  size_t height() { return _height; }
+  std::vector<Pixel> const& pixels() { return _pixels; }
+private:
+  size_t const _width;
+  size_t const _height;
+  std::vector<Pixel> _pixels;
 };

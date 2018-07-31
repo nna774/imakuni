@@ -14,18 +14,6 @@ using std::begin;
 using std::end;
 
 namespace PNG {
-  class PNG : public Image {
-  public:
-    PNG(size_t width, size_t height, std::vector<Pixel> pixels) : _width{width}, _height{height}, _pixels{pixels} {}
-    size_t width() { return _width; }
-    size_t height() { return _height; }
-    std::vector<Pixel> const& pixels() { return _pixels; }
-  private:
-    size_t const _width;
-    size_t const _height;
-    std::vector<Pixel> _pixels;
-  };
-
   class Chunk {
   public:
     Chunk(std::string const& type) : _type{type} {}
@@ -358,7 +346,6 @@ namespace PNG {
     // }
     // std::cout << std::endl;
     std::vector<Pixel> pixels = render(std::move(ihdr), data);
-    PNG* png = new PNG{width, height, pixels};
-    return std::unique_ptr<Image>{png};
+    return std::make_unique<Image>(width, height, std::move(pixels));
   }
 }
