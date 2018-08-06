@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <array>
 #include <cmath>
 #include <cstdint>
 #include <cctype>
@@ -96,18 +97,13 @@ namespace PNG {
     return std::unique_ptr<To>(nullptr);
   }
 
+  std::array<Byte, 8> const pngSigneture = { 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a };
+
   bool readHeader(std::istream& fs) {
     Byte sig[8];
     read(fs, sig);
-    if(!(sig[0] == 0x89 &&
-         sig[1] == 0x50 &&
-         sig[2] == 0x4e &&
-         sig[3] == 0x47 &&
-         sig[4] == 0x0d &&
-         sig[5] == 0x0a &&
-         sig[6] == 0x1a &&
-         sig[7] == 0x0a)) {
-      return false;
+    for(int i{0}; i < 8; ++i) {
+      if(sig[i] != pngSigneture[i]) { return false; }
     }
     return true;
   }
