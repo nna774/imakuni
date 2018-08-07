@@ -261,7 +261,7 @@ namespace PNG {
     for(auto& c : cs) {
       if(c->type() == "IDAT") {
         auto ic = dynamic_unique_cast<IDATChunk>(std::move(c));
-        auto d = ic->data();
+        std::vector<Byte> const& d = ic->data();
         v.insert(end(v), begin(d), end(d));
         c = std::make_unique<Chunk>("IDAT");
       }
