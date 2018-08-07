@@ -8,9 +8,10 @@ struct Pixel {
   Byte r, g, b;
   Pixel operator-(Pixel other) {
     Pixel p;
-    p.r = static_cast<Byte>((static_cast<int>(this->r) - other.r + 256) % 256);
-    p.g = static_cast<Byte>((static_cast<int>(this->g) - other.g + 256) % 256);
-    p.b = static_cast<Byte>((static_cast<int>(this->b) - other.b + 256) % 256);
+    auto sub = [](Byte a, Byte b) { return static_cast<Byte>((static_cast<int>(a) - static_cast<signed char>(b) + 256) % 256); };
+    p.r = sub(this->r, other.r);
+    p.g = sub(this->g, other.g);
+    p.b = sub(this->b, other.b);
     return p;
   }
 };
