@@ -72,20 +72,18 @@ namespace PNG {
     std::vector<Byte> const _data;
   };
 
-  void _read(std::istream& fs, char* p, size_t size) {
-    fs.read(p, size);
+  template<typename T>
+  void read(std::istream& fs, T& p) {
+    fs.read(reinterpret_cast<char*>(&p), sizeof(T));
   }
-
-  void _read(std::istream& fs, Byte* p, size_t size) {
-    fs.read(reinterpret_cast<char*>(p), size);
+  template<>
+  void read(std::istream& fs, std::vector<Byte>& arr) {
+    fs.read(reinterpret_cast<char*>(arr.data()), arr.size());
   }
-
-  void _read(std::istream& fs, Byte& p, size_t) {
-    fs.read(reinterpret_cast<char*>(&p), sizeof(Byte));
+  template<size_t N>
+  void read(std::istream& fs, std::array<Byte, N>& arr) {
+    fs.read(reinterpret_cast<char*>(arr.data()), N);
   }
-
-#define read(fs, p) _read((fs), (p), sizeof(p))
-#define readWithSize(fs, p, size) _read((fs), (p), (size))
 
   template <typename To, typename From>
   std::unique_ptr<To> dynamic_unique_cast(std::unique_ptr<From>&& p) {
@@ -100,7 +98,7 @@ namespace PNG {
   std::array<Byte, 8> const pngSigneture = { 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a };
 
   bool readHeader(std::istream& fs) {
-    Byte sig[8];
+    std::array<Byte, 8> sig;
     read(fs, sig);
     for(int i{0}; i < 8; ++i) {
       if(sig[i] != pngSigneture[i]) { return false; }
@@ -109,7 +107,7 @@ namespace PNG {
   }
 
   size_t readSize(std::istream& fs) {
-    Byte sizes[4];
+    std::array<Byte, 4> sizes;
     read(fs, sizes);
     return (sizes[0] << 24) + (sizes[1] << 16) + (sizes[2] << 8) + sizes[3];
   }
@@ -136,7 +134,7 @@ namespace PNG {
 
   std::unique_ptr<Chunk> readIDAT(std::istream& fs, size_t size) {
     std::vector<Byte> data(size);
-    readWithSize(fs, data.data(), size);
+    read(fs, data);
     char crc[4];
     read(fs, crc);
     return std::unique_ptr<Chunk>{new IDATChunk{data}};
