@@ -237,8 +237,6 @@ namespace PNG {
     std::array<Byte, 4> expected = crc(view.data());
     if(_crc != expected) {
       std::cerr << "crc mismatched at IEND chunk(expected " << to_str(expected) << ", but got " << to_str(_crc) << ")." << std::endl;
-    } else {
-      std::cerr << "crc ok." << std::endl;
     }
     return chunk;
   }
