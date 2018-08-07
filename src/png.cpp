@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <cctype>
 #include <cassert>
+#include <sstream>
 
 #include "png.h"
 #include "byte.h"
@@ -95,6 +96,46 @@ namespace PNG {
     return std::unique_ptr<To>(nullptr);
   }
 
+  template<size_t N>
+  std::string to_str(std::array<Byte, N> const& arr) {
+    std::stringstream buf;
+    for(size_t i{0}; i < N; ++i) {
+      buf << std::hex << static_cast<int>(arr[i]);
+    }
+    return buf.str();
+  }
+
+  constexpr std::array<uint32_t, 256> makeCrcTable() {
+    std::array<uint32_t, 256> table{};
+    for(int i{0}; i < 256; ++i) {
+      uint32_t c{static_cast<uint32_t>(i)};
+      for(int j{0}; j < 8; ++j){
+        if(c & 1) {
+          c = UINT32_C(0xedb88320) ^ (c >> 1);
+        } else {
+          c >>= 1;
+        }
+      }
+      table[i] = c;
+    }
+    return table;
+  }
+  std::array<uint32_t, 256> constexpr const crcTable = makeCrcTable();
+
+  std::array<Byte, 4> crc(std::vector<Byte> const& data) {
+    uint32_t _crc = UINT32_C(0xffffffff);
+    for(auto b: data) {
+      _crc = crcTable[(_crc ^ b) & 0xff] ^ (_crc >> 8);
+    }
+    _crc = ~_crc;
+    std::array<Byte, 4> c{};
+    c[3] = _crc & 0xff;
+    c[2] = (_crc & 0xff00) >> 8;
+    c[1] = (_crc & 0xff0000) >> 16;
+    c[0] = (_crc & 0xff000000) >> 24;
+    return c;
+  }
+
   std::array<Byte, 8> const pngSigneture = { 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a };
 
   bool readHeader(std::istream& fs) {
@@ -141,8 +182,13 @@ namespace PNG {
   }
 
   std::unique_ptr<Chunk> readIEND(std::istream& fs) {
-    char crc[4];
-    read(fs, crc);
+    std::array<Byte, 4> _crc;
+    read(fs, _crc);
+    std::array<Byte, 4> expected = crc({'I', 'E', 'N', 'D'});
+    if(_crc != expected) {
+      std::cerr << "crc mismatched at IEND chunk(expected " << to_str(expected) << ", but got " << to_str(_crc) << ")." << std::endl;
+    }
+
     return std::unique_ptr<Chunk>{new Chunk{"IEND"}};
   }
 
