@@ -179,6 +179,28 @@ namespace PNG {
     return p;
   }
 
+  Pixel paethPredictor(Pixel a, Pixel b, Pixel c) {
+    auto pp = [](Byte a, Byte b, Byte c) {
+      int pp = static_cast<int>(a) + b - c;
+      int pa = std::abs(pp - a);
+      int pb = std::abs(pp - b);
+      int pc = std::abs(pp - c);
+
+      if (pa <= pb && pa <= pc) {
+        return a;
+      } else if (pb <= pc) {
+        return b;
+      } else {
+        return c;
+      }
+    };
+    Pixel p;
+    p.r = pp(a.r, b.r, c.r);
+    p.g = pp(a.g, b.g, c.g);
+    p.b = pp(a.b, b.b, c.b);
+    return p;
+  };
+
   std::array<Byte, 8> const pngSigneture = { 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a };
 
   bool readHeader(std::istream& fs) {
@@ -340,28 +362,7 @@ namespace PNG {
               Pixel left = pixels[i - 1];
               Pixel up = pixels[i - width];
               Pixel naname = pixels[i - width - 1];
-              auto paethPredictor = [](Byte a, Byte b, Byte c) {
-                int pp = static_cast<int>(a) + b - c;
-                int pa = std::abs(pp - a);
-                int pb = std::abs(pp - b);
-                int pc = std::abs(pp - c);
-
-                if (pa <= pb && pa <= pc) {
-                  return a;
-                } else if (pb <= pc) {
-                  return b;
-                } else {
-                  return c;
-                }
-              };
-              auto pp = [&paethPredictor](Pixel a, Pixel b, Pixel c) {
-                Pixel p;
-                p.r = paethPredictor(a.r, b.r, c.r);
-                p.g = paethPredictor(a.g, b.g, c.g);
-                p.b = paethPredictor(a.b, b.b, c.b);
-                return p;
-              };
-              p = p + pp(left, up, naname);
+              p = p + paethPredictor(left, up, naname);
             }
             break;
           }
