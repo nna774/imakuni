@@ -170,6 +170,14 @@ namespace PNG {
     return c;
   }
 
+  Pixel average(Pixel lhs, Pixel rhs) {
+    Pixel p;
+    p.r = (static_cast<int>(lhs.r) + rhs.r) / 2;
+    p.g = (static_cast<int>(lhs.g) + rhs.g) / 2;
+    p.b = (static_cast<int>(lhs.b) + rhs.b) / 2;
+    return p;
+  }
+
   std::array<Byte, 8> const pngSigneture = { 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a };
 
   bool readHeader(std::istream& fs) {
@@ -293,71 +301,41 @@ namespace PNG {
         }
         case 2: // color
         {
-          auto add = [](Byte a, Byte b) { return Byte((static_cast<int>(a) + static_cast<signed char>(b) + 256) % 256); };
+          int base = h * (width * 3 + 1) + w * 3 + 1;
+          p = {data[base], data[base + 1], data[base + 2]};
           switch(data[h * (width * 3 + 1)]) { // filtertype
           case 0: // None
           {
-            int base = h * (width * 3 + 1) + w * 3 + 1;
-            p.r = data[base];
-            p.g = data[base + 1];
-            p.b = data[base + 2];
             break;
           }
           case 1:
           {
-            int base = h * (width * 3 + 1) + w * 3 + 1;
-            if(w == 0) {
-              p.r = data[base];
-              p.g = data[base + 1];
-              p.b = data[base + 2];
-            } else {
+            if(w != 0) {
               Pixel b = pixels[i - 1];
-              p.r = add(b.r, data[base]);
-              p.g = add(b.g, data[base + 1]);
-              p.b = add(b.b, data[base + 2]);
+              p = p + b;
             }
             break;
           }
           case 2:
           {
-            int base = h * (width * 3 + 1) + w * 3 + 1;
-            if(h == 0) {
-              p.r = data[base];
-              p.g = data[base + 1];
-              p.b = data[base + 2];
-            } else {
+            if(h != 0) {
               Pixel b = pixels[i - width];
-              p.r = add(b.r, data[base]);
-              p.g = add(b.g, data[base + 1]);
-              p.b = add(b.b, data[base + 2]);
+              p = p + b;
             }
             break;
           }
           case 3:
           {
-            int base = h * (width * 3 + 1) + w * 3 + 1;
-            if(w == 0 || h == 0) {
-              p.r = data[base];
-              p.g = data[base + 1];
-              p.b = data[base + 2];
-            } else {
+            if(!(w == 0 || h == 0)) {
               Pixel b1 = pixels[i - 1];
               Pixel b2 = pixels[i - width];
-
-              p.r = add((static_cast<int>(b1.r) + b2.r) / 2, data[base]);
-              p.g = add((static_cast<int>(b1.g) + b2.g) / 2, data[base + 1]);
-              p.b = add((static_cast<int>(b1.b) + b2.b) / 2, data[base + 2]);
+              p = p + average(b1, b2);
             }
             break;
           }
           case 4:
           {
-            int base = h * (width * 3 + 1) + w * 3 + 1;
-            if(w == 0 || h == 0) {
-              p.r = data[base];
-              p.g = data[base + 1];
-              p.b = data[base + 2];
-            } else {
+            if(!(w == 0 || h == 0)) {
               Pixel left = pixels[i - 1];
               Pixel up = pixels[i - width];
               Pixel naname = pixels[i - width - 1];
@@ -375,10 +353,14 @@ namespace PNG {
                   return c;
                 }
               };
-
-              p.r = add(paethPredictor(left.r, up.r, naname.r), data[base]);
-              p.g = add(paethPredictor(left.g, up.g, naname.g), data[base + 1]);
-              p.b = add(paethPredictor(left.b, up.b, naname.b), data[base + 2]);
+              auto pp = [&paethPredictor](Pixel a, Pixel b, Pixel c) {
+                Pixel p;
+                p.r = paethPredictor(a.r, b.r, c.r);
+                p.g = paethPredictor(a.g, b.g, c.g);
+                p.b = paethPredictor(a.b, b.b, c.b);
+                return p;
+              };
+              p = p + pp(left, up, naname);
             }
             break;
           }

@@ -6,6 +6,14 @@
 
 struct Pixel {
   Byte r, g, b;
+  Pixel operator+(Pixel other) {
+    Pixel p;
+    auto add = [](Byte a, Byte b) { return static_cast<Byte>((static_cast<int>(a) + static_cast<signed char>(b) + 256) % 256); };
+    p.r = add(this->r, other.r);
+    p.g = add(this->g, other.g);
+    p.b = add(this->b, other.b);
+    return p;
+  }
   Pixel operator-(Pixel other) {
     Pixel p;
     auto sub = [](Byte a, Byte b) { return static_cast<Byte>((static_cast<int>(a) - static_cast<signed char>(b) + 256) % 256); };
