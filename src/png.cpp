@@ -7,6 +7,7 @@
 #include <cctype>
 #include <cassert>
 #include <sstream>
+#include <algorithm>
 
 #include "png.h"
 #include "byte.h"
@@ -75,6 +76,20 @@ namespace PNG {
   };
 
   template<typename T>
+  class vector_view {
+  public:
+    vector_view(std::vector<T>&& v) : _v{v}, _pos{begin(_v)} {}
+    typename std::vector<T>::iterator& pos() {
+      assert(_pos != end(_v));
+      return _pos;
+    }
+    std::vector<T>& data() { return _v; }
+  private:
+    std::vector<T> _v;
+    typename std::vector<T>::iterator _pos;
+  };
+
+  template<typename T>
   void read(std::istream& fs, T& p) {
     fs.read(reinterpret_cast<char*>(&p), sizeof(T));
   }
@@ -85,6 +100,24 @@ namespace PNG {
   template<size_t N>
   void read(std::istream& fs, std::array<Byte, N>& arr) {
     fs.read(reinterpret_cast<char*>(arr.data()), N);
+  }
+
+  template<typename T>
+  void read(vector_view<Byte>& v, T& p) {
+    Byte* pp = reinterpret_cast<Byte*>(&p);
+    for(size_t i{0}; i < sizeof(T); ++i) {
+      pp[i] = *(v.pos()++);
+    }
+  }
+  template<>
+  void read(vector_view<Byte>& v, std::vector<Byte>& arr) {
+    std::copy_n(v.pos(), arr.size(), begin(arr));
+    std::advance(v.pos(), arr.size());
+  }
+  template<typename T, size_t N>
+  void read(vector_view<Byte>& v, std::array<T, N>& p) {
+    std::copy_n(v.pos(), N, reinterpret_cast<char*>(begin(p)));
+    std::advance(v.pos(), N);
   }
 
   template <typename To, typename From>
@@ -148,19 +181,18 @@ namespace PNG {
     return true;
   }
 
-  size_t readSize(std::istream& fs) {
+  template<typename T>
+  size_t readSize(T& fs) {
     std::array<Byte, 4> sizes;
     read(fs, sizes);
     return (sizes[0] << 24) + (sizes[1] << 16) + (sizes[2] << 8) + sizes[3];
   }
 
-  std::unique_ptr<Chunk> readIHDR(std::istream& fs) {
-    size_t width = readSize(fs);
-    size_t height = readSize(fs);
-    Byte others[5];
-    read(fs, others);
-    char crc[4];
-    read(fs, crc);
+  std::unique_ptr<Chunk> readIHDR(vector_view<Byte>& view) {
+    size_t width = readSize(view);
+    size_t height = readSize(view);
+    std::array<Byte,5> others;
+    read(view, others);
     return std::unique_ptr<Chunk>{
       new IHDRChunk{
         width,
@@ -174,42 +206,41 @@ namespace PNG {
     };
   }
 
-  std::unique_ptr<Chunk> readIDAT(std::istream& fs, size_t size) {
+  std::unique_ptr<Chunk> readIDAT(vector_view<Byte>& view, size_t size) {
     std::vector<Byte> data(size);
-    read(fs, data);
-    char crc[4];
-    read(fs, crc);
-    return std::unique_ptr<Chunk>{new IDATChunk{data}};
-  }
-
-  std::unique_ptr<Chunk> readIEND(std::istream& fs) {
-    std::array<Byte, 4> _crc;
-    read(fs, _crc);
-    std::array<Byte, 4> expected = crc({'I', 'E', 'N', 'D'});
-    if(_crc != expected) {
-      std::cerr << "crc mismatched at IEND chunk(expected " << to_str(expected) << ", but got " << to_str(_crc) << ")." << std::endl;
-    }
-
-    return std::unique_ptr<Chunk>{new Chunk{"IEND"}};
+    read(view, data);
+    return std::unique_ptr<Chunk>{new IDATChunk{std::move(data)}};
   }
 
   std::unique_ptr<Chunk> readChunk(std::istream& fs) {
-    size_t size = readSize(fs);
-    char types[4];
-    read(fs, types);
-    std::string type{types};
+    size_t const size = readSize(fs);
+    std::vector<Byte> buf(size + 4); // 4 is type
+    read(fs, buf);
+    vector_view<Byte> view{std::move(buf)};
+    std::array<char, 4> types;
+    read(view, types);
+    std::string type{begin(types), end(types)};
+    std::unique_ptr<Chunk> chunk;
     if(type == "IHDR") {
-      return readIHDR(fs);
+      chunk = readIHDR(view);
     } else if(type == "IDAT") {
-      return readIDAT(fs, size);
+      chunk = readIDAT(view, size);
     } else if(type == "IEND") {
-      return readIEND(fs);
+      chunk = std::make_unique<Chunk>("IEND");
     } else {
       std::cerr << "unknown chunk type: " << type << std::endl;
       std::cerr << "size: " << size << std::endl;
-      fs.ignore(size + 4); // 4 is crc
-      return std::unique_ptr<Chunk>{new Chunk{type}};
+      chunk = std::make_unique<Chunk>(type);
     }
+    std::array<Byte, 4> _crc;
+    read(fs, _crc);
+    std::array<Byte, 4> expected = crc(view.data());
+    if(_crc != expected) {
+      std::cerr << "crc mismatched at IEND chunk(expected " << to_str(expected) << ", but got " << to_str(_crc) << ")." << std::endl;
+    } else {
+      std::cerr << "crc ok." << std::endl;
+    }
+    return chunk;
   }
 
   std::vector<std::unique_ptr<Chunk>> readChunks(std::istream& fs) {
