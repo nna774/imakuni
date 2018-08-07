@@ -426,8 +426,7 @@ namespace PNG {
   std::pair<int, std::vector<Pixel>> filter(std::vector<Pixel> const& pixels,
                                             std::vector<Pixel>::const_iterator s,
                                             std::vector<Pixel>::const_iterator g,
-                                            std::vector<Pixel>::const_iterator pre_s,
-                                            std::vector<Pixel>::const_iterator pre_g) {
+                                            std::vector<Pixel>::const_iterator pre_s) {
     size_t size = pixels.size();
     std::vector<std::vector<Pixel>> filters(5, std::vector<Pixel>(size));
 
@@ -450,7 +449,21 @@ namespace PNG {
       }
     }
 
-    return std::make_pair(1, filters[1]);
+    // up filter
+    {
+      auto out = begin(filters[2]);
+      for(auto it{s}; it != g; ++it) {
+        auto p = *it;
+        if(pre_s == end(pixels)) {
+          *(out++) = p;
+        } else {
+          auto diff = p - *(pre_s++);
+          *(out++) = diff;
+        }
+      }
+    }
+
+    return std::make_pair(2, filters[2]);
   }
 
   std::unique_ptr<Chunk> makeIDAT(size_t width, size_t height, std::vector<Pixel> const& pixels) {
@@ -459,11 +472,10 @@ namespace PNG {
     auto g = begin(pixels);
     std::advance(g, width);
     decltype(s) pre_s = end(pixels);
-    decltype(s) pre_g = end(pixels);
 
     for(size_t i{0}; i < height; ++i) {
       size_t const base{(width * 3 + 1) * i};
-      std::pair<int, std::vector<Pixel>> const v = filter(pixels, s, g, pre_s, pre_g);
+      std::pair<int, std::vector<Pixel>> const v = filter(pixels, s, g, pre_s);
       std::vector<Pixel> const& ps = v.second;
       data[base] = v.first;
       for(size_t j{0}; j < width; ++j) {
@@ -473,7 +485,6 @@ namespace PNG {
         data[base + 1 + 3 * j + 2] = p.b;
       }
       pre_s = s;
-      pre_g = g;
       std::advance(s, width);
       std::advance(g, width);
     }
