@@ -68,6 +68,7 @@ namespace PNG {
   class IDATChunk : public Chunk {
   public:
     IDATChunk(std::vector<Byte> const& data) : Chunk{"IDAT"}, _data{data} {}
+    IDATChunk(std::vector<Byte>&& data) : Chunk{"IDAT"}, _data{std::move(data)} {}
     std::vector<Byte> const& data() { return _data; }
   private:
     std::vector<Byte> const _data;
