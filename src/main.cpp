@@ -17,6 +17,6 @@ int main(int argc, char** argv) {
     img = PNG::load(std::cin);
   }
 
-  PNM::exportPNM(std::move(img), std::cout);
+  PNG::exportPNG(std::move(img), std::cout);
   return 0;
 }

@@ -34,11 +34,11 @@ namespace PNG {
     IHDRChunk(
       size_t width,
       size_t height,
-      int depth,
-      int colorType,
-      int compression,
-      int filter,
-      int interlace
+      Byte depth,
+      Byte colorType,
+      Byte compression,
+      Byte filter,
+      Byte interlace
       ) :
       Chunk{"IHDR"},
       _width{width},
@@ -51,19 +51,19 @@ namespace PNG {
     {}
     size_t width() { return _width; }
     size_t height() { return _height; }
-    int depth() { return _depth; }
-    int colorType() { return _colorType; }
-    int compression() { return _compression; }
-    int filter() { return _filter; }
-    int interlace() { return _interlace; }
+    Byte depth() { return _depth; }
+    Byte colorType() { return _colorType; }
+    Byte compression() { return _compression; }
+    Byte filter() { return _filter; }
+    Byte interlace() { return _interlace; }
   private:
     size_t const _width;
     size_t const _height;
-    int const _depth;
-    int const _colorType;
-    int const _compression;
-    int const _filter;
-    int const _interlace;
+    Byte const _depth;
+    Byte const _colorType;
+    Byte const _compression;
+    Byte const _filter;
+    Byte const _interlace;
   };
 
   class IDATChunk : public Chunk {
@@ -417,5 +417,156 @@ namespace PNG {
     // std::cout << std::endl;
     std::vector<Pixel> pixels = render(std::move(ihdr), data);
     return std::make_unique<Image>(width, height, std::move(pixels));
+  }
+
+  std::unique_ptr<Chunk> makeIHDR(size_t width, size_t height) {
+    return std::unique_ptr<Chunk>{new IHDRChunk{width, height, 8, 2, 0, 0, 0}};
+  }
+
+  std::pair<int, std::vector<Pixel>> filter(std::vector<Pixel> const& pixels,
+                                            std::vector<Pixel>::const_iterator s,
+                                            std::vector<Pixel>::const_iterator g,
+                                            std::vector<Pixel>::const_iterator pre_s,
+                                            std::vector<Pixel>::const_iterator pre_g) {
+    size_t size = pixels.size();
+    std::vector<std::vector<Pixel>> filters(5, std::vector<Pixel>(size));
+
+    // none filter
+    std::copy(s, g, begin(filters[0]));
+
+    // sub filter
+    {
+      auto out = begin(filters[1]);
+      Pixel pre;
+      for(auto it{s}; it != g; ++it) {
+        if(it == s) {
+          pre = *(out++) = *(it++);
+        } else {
+          
+        }
+      }
+    }
+
+    return std::make_pair(0, filters[0]);
+  }
+
+  std::unique_ptr<Chunk> makeIDAT(size_t width, size_t height, std::vector<Pixel> const& pixels) {
+    std::vector<Byte> data((width * 3 + 1) * height);
+    auto s = begin(pixels);
+    auto g = begin(pixels);
+    std::advance(g, width);
+    decltype(s) pre_s = end(pixels);
+    decltype(s) pre_g = end(pixels);
+
+    for(size_t i{0}; i < height; ++i) {
+      size_t const base{(width * 3 + 1) * i};
+      std::pair<int, std::vector<Pixel>> const v = filter(pixels, s, g, pre_s, pre_g);
+      std::vector<Pixel> const& ps = v.second;
+      data[base] = v.first;
+      for(size_t j{0}; j < width; ++j) {
+        Pixel const p = ps[j];
+        data[base + 1 + 3 * j] = p.r;
+        data[base + 1 + 3 * j + 1] = p.g;
+        data[base + 1 + 3 * j + 2] = p.b;
+      }
+      pre_s = s;
+      pre_g = g;
+      std::advance(s, width);
+      std::advance(g, width);
+    }
+    return std::unique_ptr<Chunk>{new IDATChunk{data}};
+  }
+
+  std::vector<std::unique_ptr<Chunk>> makeChunks(size_t width, size_t height, std::vector<Pixel> const& pixels) {
+    std::vector<std::unique_ptr<Chunk>> v;
+    v.push_back(makeIHDR(width, height));
+    v.push_back(makeIDAT(width, height, pixels));
+    v.push_back(std::make_unique<Chunk>("IEND"));
+    return v;
+  }
+
+  void putSize(std::vector<Byte>& buf, size_t size) {
+    buf.push_back((size >> 24) & 0xff);
+    buf.push_back((size >> 16) & 0xff);
+    buf.push_back((size >>  8) & 0xff);
+    buf.push_back((size >>  0) & 0xff);
+  }
+
+  void putSize(std::ostream& os, size_t size) {
+    os << static_cast<Byte>((size >> 24) & 0xff);
+    os << static_cast<Byte>((size >> 16) & 0xff);
+    os << static_cast<Byte>((size >>  8) & 0xff);
+    os << static_cast<Byte>((size >>  0) & 0xff);
+  }
+
+  void putString(std::vector<Byte>& buf, std::string str) {
+    for(char c: str) {
+      buf.push_back(c);
+    }
+  }
+
+  void flush(std::ostream& os, std::vector<Byte> const& buf) {
+    for(Byte b: buf) {
+      os << b;
+    }
+    for(Byte b: crc(buf)) {
+      os << b;
+    }
+  }
+
+  void putIHDRChunk(std::ostream& os, std::unique_ptr<IHDRChunk> c) {
+    std::vector<Byte> buf;
+    putSize(os, 13);
+
+    putString(buf, "IHDR");
+    putSize(buf, c->width());
+    putSize(buf, c->height());
+    buf.push_back(c->depth());
+    buf.push_back(c->colorType());
+    buf.push_back(c->compression());
+    buf.push_back(c->filter());
+    buf.push_back(c->interlace());
+    flush(os, buf);
+  }
+
+  void putIDATChunk(std::ostream& os, std::unique_ptr<IDATChunk> c) {
+    std::vector<Byte> buf;
+    std::vector<Byte> compressed = Deflate::compress(c->data());
+    putSize(os, compressed.size());
+
+    putString(buf, "IDAT");
+    std::copy(begin(compressed), end(compressed), std::back_inserter(buf));
+    flush(os, buf);
+  }
+
+  void putIENDChunk(std::ostream& os) {
+    putSize(os, 0);
+    std::vector<Byte> buf;
+    putString(buf, "IEND");
+    flush(os, buf);
+  }
+
+  void putChunks(std::ostream& os, std::vector<std::unique_ptr<Chunk>>& chunks) {
+    for(auto& c: chunks) {
+      std::string const& type = c->type();
+      if(type == "IHDR") {
+        putIHDRChunk(os, dynamic_unique_cast<IHDRChunk>(std::move(c)));
+      } else if (type == "IDAT") {
+        putIDATChunk(os, dynamic_unique_cast<IDATChunk>(std::move(c)));
+      } else if (type == "IEND") {
+        putIENDChunk(os);
+      } else {
+        std::cerr << "unknown chunk type(" << type << ") skipping..." << std::endl;
+      }
+    }
+  }
+
+  std::unique_ptr<Image> exportPNG(std::unique_ptr<Image>&& img, std::ostream& os) {
+    for(Byte b: pngSigneture) {
+      os << b;
+    }
+    std::vector<std::unique_ptr<Chunk>> chunks = makeChunks(img->width(), img->height(), img->pixels());
+    putChunks(os, chunks);
+    return std::move(img);
   }
 }
