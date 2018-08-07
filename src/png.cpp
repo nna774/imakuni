@@ -377,7 +377,7 @@ namespace PNG {
       << ihdr->compression() << ' '
       << ihdr->filter() << ' '
       << ihdr->interlace() << std::endl;
-    chunks[0] = std::make_unique<Chunk>("IHDRn");
+    chunks[0] = std::make_unique<Chunk>("IHDR");
     std::vector<Byte> data = concatIDAT(chunks);
     data = Deflate::decompress(data);
 // //    std::cout << "size: " << data.size() << std::endl;
