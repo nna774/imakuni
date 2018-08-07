@@ -437,17 +437,20 @@ namespace PNG {
     // sub filter
     {
       auto out = begin(filters[1]);
-      Pixel pre;
+      Pixel pre{};
       for(auto it{s}; it != g; ++it) {
+        auto p = *it;
         if(it == s) {
-          pre = *(out++) = *(it++);
+          pre = *(out++) = p;
         } else {
-          
+          auto diff = p - pre;
+          *(out++) = diff;
+          pre = p;
         }
       }
     }
 
-    return std::make_pair(0, filters[0]);
+    return std::make_pair(1, filters[1]);
   }
 
   std::unique_ptr<Chunk> makeIDAT(size_t width, size_t height, std::vector<Pixel> const& pixels) {
