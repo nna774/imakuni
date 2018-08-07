@@ -5,7 +5,7 @@ LIB_DIR := ../lib
 SRCS := main.cpp png.cpp pnm.cpp deflate.cpp
 OBJS := $(SRCS:%.cpp=%.o)
 DEPS := $(SRCS:%.cpp=%.d)
-CFLAGS := -Wall -Wextra
+CFLAGS := -Wall -Wextra -std=c++17
 -include $(DEPS)
 
 all: build
