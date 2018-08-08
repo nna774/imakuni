@@ -423,7 +423,7 @@ namespace PNG {
                                             std::vector<Pixel>::const_iterator s,
                                             std::vector<Pixel>::const_iterator g,
                                             std::vector<Pixel>::const_iterator pre_s) {
-    size_t size = pixels.size();
+    size_t size = std::distance(s, g);
     std::vector<std::vector<Pixel>> filters(5, std::vector<Pixel>(size));
 
     // none filter
