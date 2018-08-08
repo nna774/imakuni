@@ -434,14 +434,8 @@ namespace PNG {
       auto out = begin(filters[1]);
       Pixel pre{};
       for(auto it{s}; it != g; ++it) {
-        auto p = *it;
-        if(it == s) {
-          pre = *(out++) = p;
-        } else {
-          auto diff = p - pre;
-          *(out++) = diff;
-          pre = p;
-        }
+        *(out++) = *it - pre;
+        pre = *it;
       }
     }
 
