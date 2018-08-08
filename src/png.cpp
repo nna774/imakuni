@@ -331,39 +331,51 @@ namespace PNG {
           {
             break;
           }
-          case 1:
+          case 1: // Sub
           {
+            Pixel b{};
             if(w != 0) {
-              Pixel b = pixels[i - 1];
-              p = p + b;
+              b = pixels[i - 1];
             }
+            p = p + b;
             break;
           }
-          case 2:
+          case 2: // Up
           {
+            Pixel b{};
             if(h != 0) {
-              Pixel b = pixels[i - width];
-              p = p + b;
+              b = pixels[i - width];
             }
+            p = p + b;
             break;
           }
-          case 3:
+          case 3: // Ave
           {
-            if(!(w == 0 || h == 0)) {
-              Pixel b1 = pixels[i - 1];
-              Pixel b2 = pixels[i - width];
-              p = p + average(b1, b2);
+            Pixel b1{}, b2{};
+            if(w != 0) {
+              b1 = pixels[i - 1];
             }
+            if(h != 0) {
+              b2 = pixels[i - width];
+            }
+            p = p + average(b1, b2);
             break;
           }
-          case 4:
+          case 4: // Paeth
           {
-            if(!(w == 0 || h == 0)) {
-              Pixel left = pixels[i - 1];
-              Pixel up = pixels[i - width];
-              Pixel naname = pixels[i - width - 1];
-              p = p + paethPredictor(left, up, naname);
+            Pixel left{};
+            Pixel up{};
+            Pixel naname{};
+            if(w != 0) {
+              left = pixels[i - 1];
             }
+            if(h != 0) {
+              up = pixels[i - width];
+            }
+            if(w != 0 && h != 0) {
+              naname = pixels[i - width - 1];
+            }
+            p = p + paethPredictor(left, up, naname);
             break;
           }
           }
