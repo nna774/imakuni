@@ -12,6 +12,7 @@
 #include "png.h"
 #include "byte.h"
 #include "deflate.h"
+#include "dynamic_unique_cast.h"
 
 using std::begin;
 using std::end;
@@ -118,16 +119,6 @@ namespace PNG {
   void read(vector_view<Byte>& v, std::array<T, N>& p) {
     std::copy_n(v.pos(), N, reinterpret_cast<char*>(begin(p)));
     std::advance(v.pos(), N);
-  }
-
-  template <typename To, typename From>
-  std::unique_ptr<To> dynamic_unique_cast(std::unique_ptr<From>&& p) {
-    if (To* cast = dynamic_cast<To*>(p.get())) {
-      std::unique_ptr<To> result(cast);
-      p.release();
-      return result;
-    }
-    return std::unique_ptr<To>(nullptr);
   }
 
   template<size_t N>
