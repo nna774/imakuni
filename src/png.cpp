@@ -13,6 +13,7 @@
 #include "deflate.h"
 #include "dynamic_unique_cast.h"
 #include "read.h"
+#include "to_string.h"
 
 using std::begin;
 using std::end;
@@ -75,15 +76,6 @@ namespace PNG {
   private:
     std::vector<Byte> const _data;
   };
-
-  template<size_t N>
-  std::string to_str(std::array<Byte, N> const& arr) {
-    std::stringstream buf;
-    for(size_t i{0}; i < N; ++i) {
-      buf << std::hex << static_cast<int>(arr[i]);
-    }
-    return buf.str();
-  }
 
   constexpr std::array<uint32_t, 256> makeCrcTable() {
     std::array<uint32_t, 256> table{};
