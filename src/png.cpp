@@ -5,7 +5,6 @@
 #include <cmath>
 #include <cstdint>
 #include <cctype>
-#include <cassert>
 #include <sstream>
 #include <algorithm>
 
@@ -13,6 +12,7 @@
 #include "byte.h"
 #include "deflate.h"
 #include "dynamic_unique_cast.h"
+#include "read.h"
 
 using std::begin;
 using std::end;
@@ -75,51 +75,6 @@ namespace PNG {
   private:
     std::vector<Byte> const _data;
   };
-
-  template<typename T>
-  class vector_view {
-  public:
-    vector_view(std::vector<T>&& v) : _v{v}, _pos{begin(_v)} {}
-    typename std::vector<T>::iterator& pos() {
-      assert(_pos != end(_v));
-      return _pos;
-    }
-    std::vector<T>& data() { return _v; }
-  private:
-    std::vector<T> _v;
-    typename std::vector<T>::iterator _pos;
-  };
-
-  template<typename T>
-  void read(std::istream& fs, T& p) {
-    fs.read(reinterpret_cast<char*>(&p), sizeof(T));
-  }
-  template<>
-  void read(std::istream& fs, std::vector<Byte>& arr) {
-    fs.read(reinterpret_cast<char*>(arr.data()), arr.size());
-  }
-  template<size_t N>
-  void read(std::istream& fs, std::array<Byte, N>& arr) {
-    fs.read(reinterpret_cast<char*>(arr.data()), N);
-  }
-
-  template<typename T>
-  void read(vector_view<Byte>& v, T& p) {
-    Byte* pp = reinterpret_cast<Byte*>(&p);
-    for(size_t i{0}; i < sizeof(T); ++i) {
-      pp[i] = *(v.pos()++);
-    }
-  }
-  template<>
-  void read(vector_view<Byte>& v, std::vector<Byte>& arr) {
-    std::copy_n(v.pos(), arr.size(), begin(arr));
-    std::advance(v.pos(), arr.size());
-  }
-  template<typename T, size_t N>
-  void read(vector_view<Byte>& v, std::array<T, N>& p) {
-    std::copy_n(v.pos(), N, reinterpret_cast<char*>(begin(p)));
-    std::advance(v.pos(), N);
-  }
 
   template<size_t N>
   std::string to_str(std::array<Byte, N> const& arr) {
