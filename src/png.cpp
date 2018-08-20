@@ -12,7 +12,6 @@
 #include "png.h"
 #include "byte.h"
 #include "deflate.h"
-#include "dynamic_unique_cast.h"
 #include "read.h"
 #include "to_string.h"
 
