@@ -7,6 +7,7 @@
 #include <cctype>
 #include <sstream>
 #include <algorithm>
+#include <variant>
 
 #include "png.h"
 #include "byte.h"
@@ -19,19 +20,18 @@ using std::begin;
 using std::end;
 
 namespace PNG {
-  class Chunk {
+  class BaseChunk {
   public:
-    Chunk(std::string const& type) : _type{type} {}
-    std::string type() { return _type; }
+    BaseChunk(std::string const& type) : _type{type} {}
+    std::string const& type() const { return _type; }
     bool isCritical() { return std::isupper(_type[0]); }
     bool isPublic() { return std::isupper(_type[1]); }
     bool isSafe() { return std::isupper(_type[3]); }
-    virtual ~Chunk() {}
   private:
     std::string const _type;
   };
 
-  class IHDRChunk : public Chunk {
+  class IHDRChunk {
   public:
     IHDRChunk(
       size_t width,
@@ -42,7 +42,7 @@ namespace PNG {
       Byte filter,
       Byte interlace
       ) :
-      Chunk{"IHDR"},
+      _type{"IHDR"},
       _width{width},
       _height{height},
       _depth{depth},
@@ -51,14 +51,16 @@ namespace PNG {
       _filter{filter},
       _interlace{interlace}
     {}
-    size_t width() { return _width; }
-    size_t height() { return _height; }
-    Byte depth() { return _depth; }
-    Byte colorType() { return _colorType; }
-    Byte compression() { return _compression; }
-    Byte filter() { return _filter; }
-    Byte interlace() { return _interlace; }
+    std::string const& type() const { return _type; }
+    size_t width() const { return _width; }
+    size_t height() const  { return _height; }
+    Byte depth() const  { return _depth; }
+    Byte colorType() const  { return _colorType; }
+    Byte compression() const  { return _compression; }
+    Byte filter() const  { return _filter; }
+    Byte interlace() const { return _interlace; }
   private:
+    std::string const _type;
     size_t const _width;
     size_t const _height;
     Byte const _depth;
@@ -68,14 +70,18 @@ namespace PNG {
     Byte const _interlace;
   };
 
-  class IDATChunk : public Chunk {
+  class IDATChunk {
   public:
-    IDATChunk(std::vector<Byte> const& data) : Chunk{"IDAT"}, _data{data} {}
-    IDATChunk(std::vector<Byte>&& data) : Chunk{"IDAT"}, _data{std::move(data)} {}
-    std::vector<Byte> const& data() { return _data; }
+    IDATChunk(std::vector<Byte> const& data) : _type{"IDAT"}, _data{data} {}
+    IDATChunk(std::vector<Byte>&& data) : _type{"IDAT"}, _data{std::move(data)} {}
+    std::vector<Byte> const& data() const { return _data; }
+    std::string const& type() const { return _type; }
   private:
+    std::string const _type;
     std::vector<Byte> const _data;
   };
+
+  using Chunk = std::variant<BaseChunk, IHDRChunk, IDATChunk>;
 
   constexpr std::array<uint32_t, 256> makeCrcTable() {
     std::array<uint32_t, 256> table{};
@@ -162,8 +168,8 @@ namespace PNG {
     size_t height = readSize(view);
     std::array<Byte,5> others;
     read(view, others);
-    return std::unique_ptr<Chunk>{
-      new IHDRChunk{
+    return std::make_unique<Chunk>(
+      IHDRChunk{
         width,
         height,
         others[0], // depth
@@ -172,13 +178,13 @@ namespace PNG {
         others[3], // filter method
         others[4], // interlace method
       }
-    };
+    );
   }
 
   std::unique_ptr<Chunk> readIDAT(vector_view<Byte>& view, size_t size) {
     std::vector<Byte> data(size);
     read(view, data);
-    return std::unique_ptr<Chunk>{new IDATChunk{std::move(data)}};
+    return std::make_unique<Chunk>(std::move(data));
   }
 
   std::unique_ptr<Chunk> readChunk(std::istream& fs) {
@@ -195,7 +201,7 @@ namespace PNG {
     } else if(type == "IDAT") {
       chunk = readIDAT(view, size);
     } else if(type == "IEND") {
-      chunk = std::make_unique<Chunk>("IEND");
+      chunk = std::make_unique<Chunk>(BaseChunk{"IEND"});
     } else {
       std::cerr << "unknown chunk type: " << type << std::endl;
       std::cerr << "size: " << size << std::endl;
@@ -210,13 +216,17 @@ namespace PNG {
     return chunk;
   }
 
+  std::string const& type(Chunk const& c) {
+    return std::visit([](auto const& arg) -> std::string const& { return arg.type(); }, c);
+  }
+
   std::vector<std::unique_ptr<Chunk>> readChunks(std::istream& fs) {
     std::vector<std::unique_ptr<Chunk>> v;
     std::unique_ptr<Chunk> c;
     std::string type;
     do {
       c = readChunk(fs);
-      type = c->type();
+      type = PNG::type(*c);
       std::cerr << type << std::endl;
       v.push_back(std::move(c));
     } while(type != "IEND");
@@ -226,22 +236,21 @@ namespace PNG {
   std::vector<Byte> concatIDAT(std::vector<std::unique_ptr<Chunk>>& cs) {
     std::vector<Byte> v;
     for(auto& c : cs) {
-      if(c->type() == "IDAT") {
-        auto ic = dynamic_unique_cast<IDATChunk>(std::move(c));
-        std::vector<Byte> const& d = ic->data();
+      if(PNG::type(*c) == "IDAT") {
+        auto& ic = std::get<IDATChunk>(*c);
+        std::vector<Byte> const& d = ic.data();
         v.insert(end(v), begin(d), end(d));
-        c = std::make_unique<Chunk>("IDAT");
       }
     }
     return v;
   }
 
-  std::vector<Pixel> render(std::unique_ptr<IHDRChunk> ihdr, std::vector<Byte>& data) {
-    size_t const width = ihdr->width();
-    size_t const height = ihdr->height();
-    int const depth = ihdr->depth();
-    int const colorType = ihdr->colorType();
-    int const filter = ihdr->filter();
+  std::vector<Pixel> render(IHDRChunk const& ihdr, std::vector<Byte>& data) {
+    size_t const width = ihdr.width();
+    size_t const height = ihdr.height();
+    int const depth = ihdr.depth();
+    int const colorType = ihdr.colorType();
+    int const filter = ihdr.filter();
     std::vector<Pixel> pixels(width * height);
     for(size_t h{0}; h < height; ++h) {
       for(size_t w{0}; w < width; ++w) {
@@ -332,16 +341,15 @@ namespace PNG {
     }
 
     std::vector<std::unique_ptr<Chunk>> chunks = readChunks(fs);
-    auto ihdr = dynamic_unique_cast<IHDRChunk>(std::move(chunks[0]));
-    size_t width = ihdr->width();
-    size_t height = ihdr->height();
+    auto const& ihdr = std::get<IHDRChunk>(*(chunks[0]));
+    size_t width = ihdr.width();
+    size_t height = ihdr.height();
    std::cerr
-      << ihdr->depth() << ' '
-      << ihdr->colorType() << ' '
-      << ihdr->compression() << ' '
-      << ihdr->filter() << ' '
-      << ihdr->interlace() << std::endl;
-    chunks[0] = std::make_unique<Chunk>("IHDR");
+      << ihdr.depth() << ' '
+      << ihdr.colorType() << ' '
+      << ihdr.compression() << ' '
+      << ihdr.filter() << ' '
+      << ihdr.interlace() << std::endl;
     std::vector<Byte> data = concatIDAT(chunks);
     data = Deflate::decompress(data);
 // //    std::cout << "size: " << data.size() << std::endl;
@@ -349,12 +357,12 @@ namespace PNG {
     //   std::cout << int(e) << ' ';
     // }
     // std::cout << std::endl;
-    std::vector<Pixel> pixels = render(std::move(ihdr), data);
+    std::vector<Pixel> pixels = render(ihdr, data);
     return std::make_unique<Image>(width, height, std::move(pixels));
   }
 
   std::unique_ptr<Chunk> makeIHDR(size_t width, size_t height) {
-    return std::unique_ptr<Chunk>{new IHDRChunk{width, height, 8, 2, 0, 0, 0}};
+    return std::make_unique<Chunk>(IHDRChunk{width, height, 8, 2, 0, 0, 0});
   }
 
   std::pair<int, std::vector<Pixel>> filter(std::vector<Pixel> const& pixels,
@@ -416,14 +424,14 @@ namespace PNG {
       std::advance(s, width);
       std::advance(g, width);
     }
-    return std::unique_ptr<Chunk>{new IDATChunk{data}};
+    return std::make_unique<Chunk>(IDATChunk{data});
   }
 
   std::vector<std::unique_ptr<Chunk>> makeChunks(size_t width, size_t height, std::vector<Pixel> const& pixels) {
     std::vector<std::unique_ptr<Chunk>> v;
     v.push_back(makeIHDR(width, height));
     v.push_back(makeIDAT(width, height, pixels));
-    v.push_back(std::make_unique<Chunk>("IEND"));
+    v.push_back(std::make_unique<Chunk>(BaseChunk{"IEND"}));
     return v;
   }
 
@@ -456,24 +464,24 @@ namespace PNG {
     }
   }
 
-  void putIHDRChunk(std::ostream& os, std::unique_ptr<IHDRChunk> c) {
+  void putIHDRChunk(std::ostream& os, IHDRChunk const& c) {
     std::vector<Byte> buf;
     putSize(os, 13);
 
     putString(buf, "IHDR");
-    putSize(buf, c->width());
-    putSize(buf, c->height());
-    buf.push_back(c->depth());
-    buf.push_back(c->colorType());
-    buf.push_back(c->compression());
-    buf.push_back(c->filter());
-    buf.push_back(c->interlace());
+    putSize(buf, c.width());
+    putSize(buf, c.height());
+    buf.push_back(c.depth());
+    buf.push_back(c.colorType());
+    buf.push_back(c.compression());
+    buf.push_back(c.filter());
+    buf.push_back(c.interlace());
     flush(os, buf);
   }
 
-  void putIDATChunk(std::ostream& os, std::unique_ptr<IDATChunk> c) {
+  void putIDATChunk(std::ostream& os, IDATChunk const& c) {
     std::vector<Byte> buf;
-    std::vector<Byte> compressed = Deflate::compress(c->data());
+    std::vector<Byte> compressed = Deflate::compress(c.data());
     putSize(os, compressed.size());
 
     putString(buf, "IDAT");
@@ -490,11 +498,11 @@ namespace PNG {
 
   void putChunks(std::ostream& os, std::vector<std::unique_ptr<Chunk>>& chunks) {
     for(auto& c: chunks) {
-      std::string const& type = c->type();
+      std::string const& type = PNG::type(*c);
       if(type == "IHDR") {
-        putIHDRChunk(os, dynamic_unique_cast<IHDRChunk>(std::move(c)));
+        putIHDRChunk(os, std::get<IHDRChunk>(*c));
       } else if (type == "IDAT") {
-        putIDATChunk(os, dynamic_unique_cast<IDATChunk>(std::move(c)));
+        putIDATChunk(os, std::get<IDATChunk>(*c));
       } else if (type == "IEND") {
         putIENDChunk(os);
       } else {
