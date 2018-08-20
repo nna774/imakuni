@@ -53,6 +53,12 @@ int main(int argc, char** argv) {
 
   if(!okIn) {
     std::cerr << "input file " << in << " is not supported." << std::endl;
+    return -1;
+  }
+
+  if(!img) {
+    std::cerr << "something wrong while loading " << in << "." << std::endl;
+    return -1;
   }
 
   for(auto e: availableExts) {
