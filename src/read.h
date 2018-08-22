@@ -1,8 +1,8 @@
 #include <istream>
 #include <algorithm>
+#include <vector>
 
 #include "byte.h"
-#include "vector_view.h"
 
 #pragma once
 
@@ -20,19 +20,19 @@ inline void read(std::istream& fs, std::array<Byte, N>& arr) {
 }
 
 template<typename T>
-inline void read(vector_view<Byte>& v, T& p) {
+inline void read(std::vector<Byte>::iterator& v, T& p) {
   Byte* pp = reinterpret_cast<Byte*>(&p);
   for(size_t i{0}; i < sizeof(T); ++i) {
-    pp[i] = *(v.pos()++);
+    pp[i] = *(v++);
   }
 }
 template<>
-inline void read(vector_view<Byte>& v, std::vector<Byte>& arr) {
-  std::copy_n(v.pos(), arr.size(), begin(arr));
-  std::advance(v.pos(), arr.size());
+inline void read(std::vector<Byte>::iterator& v, std::vector<Byte>& arr) {
+  std::copy_n(v, arr.size(), begin(arr));
+  std::advance(v, arr.size());
 }
 template<typename T, size_t N>
-inline void read(vector_view<Byte>& v, std::array<T, N>& p) {
-  std::copy_n(v.pos(), N, reinterpret_cast<char*>(begin(p)));
-  std::advance(v.pos(), N);
+inline void read(std::vector<Byte>::iterator& v, std::array<T, N>& p) {
+  std::copy_n(v, N, reinterpret_cast<char*>(begin(p)));
+  std::advance(v, N);
 }

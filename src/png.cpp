@@ -162,11 +162,11 @@ namespace PNG {
     return (sizes[0] << 24) + (sizes[1] << 16) + (sizes[2] << 8) + sizes[3];
   }
 
-  std::unique_ptr<Chunk> readIHDR(vector_view<Byte>& view) {
-    size_t width = readSize(view);
-    size_t height = readSize(view);
+  std::unique_ptr<Chunk> readIHDR(std::vector<Byte>::iterator& it) {
+    size_t width = readSize(it);
+    size_t height = readSize(it);
     std::array<Byte,5> others;
-    read(view, others);
+    read(it, others);
     return std::make_unique<Chunk>(
       IHDRChunk{
         width,
@@ -180,9 +180,9 @@ namespace PNG {
     );
   }
 
-  std::unique_ptr<Chunk> readIDAT(vector_view<Byte>& view, size_t size) {
+  std::unique_ptr<Chunk> readIDAT(std::vector<Byte>::iterator& it, size_t size) {
     std::vector<Byte> data(size);
-    read(view, data);
+    read(it, data);
     return std::make_unique<Chunk>(std::move(data));
   }
 
@@ -190,15 +190,15 @@ namespace PNG {
     size_t const size = readSize(fs);
     std::vector<Byte> buf(size + 4); // 4 is type
     read(fs, buf);
-    vector_view<Byte> view{std::move(buf)};
+    auto it{begin(buf)};
     std::array<char, 4> types;
-    read(view, types);
+    read(it, types);
     std::string type{begin(types), end(types)};
     std::unique_ptr<Chunk> chunk;
     if(type == "IHDR") {
-      chunk = readIHDR(view);
+      chunk = readIHDR(it);
     } else if(type == "IDAT") {
-      chunk = readIDAT(view, size);
+      chunk = readIDAT(it, size);
     } else if(type == "IEND") {
       chunk = std::make_unique<Chunk>(BaseChunk{"IEND"});
     } else {
@@ -208,7 +208,7 @@ namespace PNG {
     }
     std::array<Byte, 4> _crc;
     read(fs, _crc);
-    std::array<Byte, 4> expected = crc(view.data());
+    std::array<Byte, 4> expected = crc(buf);
     if(_crc != expected) {
       std::cerr << "crc mismatched at IEND chunk(expected " << to_str(expected) << ", but got " << to_str(_crc) << ")." << std::endl;
     }
