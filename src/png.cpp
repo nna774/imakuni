@@ -364,8 +364,7 @@ namespace PNG {
     return std::make_unique<Chunk>(IHDRChunk{width, height, 8, 2, 0, 0, 0});
   }
 
-  std::pair<int, std::vector<Pixel>> filter(std::vector<Pixel> const& pixels,
-                                            std::vector<Pixel>::const_iterator s,
+  std::pair<int, std::vector<Pixel>> filter(std::vector<Pixel>::const_iterator s,
                                             std::vector<Pixel>::const_iterator g,
                                             std::vector<Pixel>::const_iterator pre_s) {
     size_t size = std::distance(s, g);
@@ -410,7 +409,7 @@ namespace PNG {
 
     for(size_t i{0}; i < height; ++i) {
       size_t const base{(width * 3 + 1) * i};
-      std::pair<int, std::vector<Pixel>> const v = filter(pixels, s, g, pre_s);
+      std::pair<int, std::vector<Pixel>> const v = filter(s, g, pre_s);
       std::vector<Pixel> const& ps = v.second;
       data[base] = v.first;
       for(size_t j{0}; j < width; ++j) {
