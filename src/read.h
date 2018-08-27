@@ -53,3 +53,9 @@ struct read_<std::array<T, N>> {
 
 template <typename T>
 read_<T> read{};
+
+template<typename T>
+size_t readSize(T& fs) {
+  auto const sizes = read<std::array<Byte, 4>>(fs);
+  return (sizes[0] << 24) + (sizes[1] << 16) + (sizes[2] << 8) + sizes[3];
+}

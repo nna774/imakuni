@@ -154,12 +154,6 @@ namespace PNG {
     return true;
   }
 
-  template<typename T>
-  size_t readSize(T& fs) {
-    auto const sizes = read<std::array<Byte, 4>>(fs);
-    return (sizes[0] << 24) + (sizes[1] << 16) + (sizes[2] << 8) + sizes[3];
-  }
-
   std::unique_ptr<Chunk> readIHDR(std::vector<Byte>::const_iterator& it) {
     size_t width = readSize(it);
     size_t height = readSize(it);
