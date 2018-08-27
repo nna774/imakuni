@@ -381,7 +381,37 @@ namespace PNG {
           up = *(pre_s++);
         }
         *(out++) = *it - up;
+      }
+    }
+
+    // average filter
+    {
+      auto out = begin(filters[3]);
+      Pixel pre{};
+      for(auto it{s}; it != g; ++it) {
+        Pixel up{};
+        auto p = *it;
+        if(pre_s != end) {
+          up = *(pre_s++);
         }
+        *(out++) = p - average(pre, up);
+        pre = p;
+      }
+    }
+
+    // paeth filter
+    {
+      auto out = begin(filters[4]);
+      Pixel pre{};
+      Pixel up_pre{};
+      for(auto it{s}; it != g; ++it) {
+        auto p = *it;
+        auto up = (pre_s == end) ? Pixel{} : *(pre_s++);
+        auto naname = up_pre;
+        auto diff = p - paethPredictor(pre, up, naname);
+        *(out++) = diff;
+        pre = p;
+        up_pre = up;
       }
     }
 
