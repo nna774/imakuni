@@ -7,32 +7,49 @@
 #pragma once
 
 template<typename T>
-inline void read(std::istream& fs, T& p) {
-  fs.read(reinterpret_cast<char*>(&p), sizeof(T));
-}
-template<typename T>
-inline void read(std::istream& fs, std::vector<T>& arr) {
-  fs.read(reinterpret_cast<char*>(arr.data()), arr.size() * sizeof(T));
-}
-template<typename T, size_t N>
-inline void read(std::istream& fs, std::array<T, N>& arr) {
-  fs.read(reinterpret_cast<char*>(begin(arr)), N * sizeof(T));
-}
-
-template<typename T>
-inline void read(std::vector<Byte>::iterator& v, T& p) {
-  Byte* pp = reinterpret_cast<Byte*>(&p);
-  for(size_t i{0}; i < sizeof(T); ++i) {
-    pp[i] = *(v++);
+struct read_ {
+  T operator() (std::istream& fs) {
+    T t;
+    fs.read(reinterpret_cast<char*>(&t), sizeof(T));
+    return t;
   }
-}
+  T operator() (std::vector<Byte>::const_iterator& it) {
+    T t;
+    Byte* pp = reinterpret_cast<Byte*>(&t);
+    for(size_t i{0}; i < sizeof(T); ++i) {
+      pp[i] = *(it++);
+    }
+    return t;
+  }
+};
 template<typename T>
-inline void read(std::vector<Byte>::iterator& v, std::vector<T>& arr) {
-  std::copy_n(v, arr.size() * sizeof(T), begin(arr));
-  std::advance(v, arr.size() * sizeof(T));
-}
+struct read_<std::vector<T>> {
+  std::vector<T> operator() (std::istream& fs, size_t n) {
+    std::vector<T> v(n);
+    fs.read(reinterpret_cast<char*>(v.data()), n * sizeof(T));
+    return v;
+  }
+  std::vector<T> operator() (std::vector<Byte>::const_iterator& it, size_t n) {
+    std::vector<T> v(n);
+    std::copy_n(it, n * sizeof(T), begin(v));
+    std::advance(it, n * sizeof(T));
+    return v;
+  }
+};
 template<typename T, size_t N>
-inline void read(std::vector<Byte>::iterator& v, std::array<T, N>& p) {
-  std::copy_n(v, N * sizeof(T), reinterpret_cast<char*>(begin(p)));
-  std::advance(v, N * sizeof(T));
-}
+struct read_<std::array<T, N>> {
+  std::array<T, N> operator() (std::istream& fs) {
+    std::array<T, N> arr;
+    fs.read(reinterpret_cast<char*>(begin(arr)), N * sizeof(T));
+    return arr;
+  }
+  std::array<T, N> operator() (std::vector<Byte>::const_iterator& it) {
+    std::array<T, N> arr;
+    std::copy_n(it, N * sizeof(T), reinterpret_cast<char*>(begin(arr)));
+    std::advance(it, N * sizeof(T));
+    return arr;
+  }
+};
+
+template <typename T>
+read_<T> read{};

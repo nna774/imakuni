@@ -147,8 +147,7 @@ namespace PNG {
   std::array<Byte, 8> const pngSigneture = { 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a };
 
   bool readHeader(std::istream& fs) {
-    std::array<Byte, 8> sig;
-    read(fs, sig);
+    auto const sig = read<std::array<Byte, 8>>(fs);
     for(int i{0}; i < 8; ++i) {
       if(sig[i] != pngSigneture[i]) { return false; }
     }
@@ -157,16 +156,14 @@ namespace PNG {
 
   template<typename T>
   size_t readSize(T& fs) {
-    std::array<Byte, 4> sizes;
-    read(fs, sizes);
+    auto const sizes = read<std::array<Byte, 4>>(fs);
     return (sizes[0] << 24) + (sizes[1] << 16) + (sizes[2] << 8) + sizes[3];
   }
 
-  std::unique_ptr<Chunk> readIHDR(std::vector<Byte>::iterator& it) {
+  std::unique_ptr<Chunk> readIHDR(std::vector<Byte>::const_iterator& it) {
     size_t width = readSize(it);
     size_t height = readSize(it);
-    std::array<Byte,5> others;
-    read(it, others);
+    auto const others = read<std::array<Byte,5>>(it);
     return std::make_unique<Chunk>(
       IHDRChunk{
         width,
@@ -180,20 +177,18 @@ namespace PNG {
     );
   }
 
-  std::unique_ptr<Chunk> readIDAT(std::vector<Byte>::iterator& it, size_t size) {
-    std::vector<Byte> data(size);
-    read(it, data);
+  std::unique_ptr<Chunk> readIDAT(std::vector<Byte>::const_iterator& it, size_t size) {
+    auto const data = read<std::vector<Byte>>(it, size);
     return std::make_unique<Chunk>(std::move(data));
   }
 
   std::unique_ptr<Chunk> readChunk(std::istream& fs) {
     size_t const size = readSize(fs);
-    std::vector<Byte> buf(size + 4); // 4 is type
-    read(fs, buf);
-    auto it{begin(buf)};
-    std::array<char, 4> types;
-    read(it, types);
-    std::string type{begin(types), end(types)};
+    // 4 is type
+    std::vector<Byte> const buf = read<std::vector<Byte>>(fs, size + 4);
+    auto it = begin(buf);
+    auto const types = read<std::array<char, 4>>(it);
+    std::string const type{begin(types), end(types)};
     std::unique_ptr<Chunk> chunk;
     if(type == "IHDR") {
       chunk = readIHDR(it);
@@ -206,8 +201,7 @@ namespace PNG {
       std::cerr << "size: " << size << std::endl;
       chunk = std::make_unique<Chunk>(type);
     }
-    std::array<Byte, 4> _crc;
-    read(fs, _crc);
+    auto const _crc = read<std::array<Byte, 4>>(fs);
     std::array<Byte, 4> expected = crc(buf);
     if(_crc != expected) {
       std::cerr << "crc mismatched at IEND chunk(expected " << to_str(expected) << ", but got " << to_str(_crc) << ")." << std::endl;
@@ -366,6 +360,7 @@ namespace PNG {
 
   std::pair<int, std::vector<Pixel>> filter(std::vector<Pixel>::const_iterator s,
                                             std::vector<Pixel>::const_iterator g,
+                                            std::vector<Pixel>::const_iterator end,
                                             std::vector<Pixel>::const_iterator pre_s) {
     size_t size = std::distance(s, g);
     std::vector<std::vector<Pixel>> filters(5, std::vector<Pixel>(size));
@@ -409,7 +404,7 @@ namespace PNG {
 
     for(size_t i{0}; i < height; ++i) {
       size_t const base{(width * 3 + 1) * i};
-      std::pair<int, std::vector<Pixel>> const v = filter(s, g, pre_s);
+      std::pair<int, std::vector<Pixel>> const v = filter(s, g, end(pixels), pre_s);
       std::vector<Pixel> const& ps = v.second;
       data[base] = v.first;
       for(size_t j{0}; j < width; ++j) {
