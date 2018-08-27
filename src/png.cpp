@@ -382,12 +382,11 @@ namespace PNG {
     {
       auto out = begin(filters[2]);
       for(auto it{s}; it != g; ++it) {
-        auto p = *it;
-        if(pre_s == end(pixels)) {
-          *(out++) = p;
-        } else {
-          auto diff = p - *(pre_s++);
-          *(out++) = diff;
+        Pixel up{};
+        if(pre_s != end) {
+          up = *(pre_s++);
+        }
+        *(out++) = *it - up;
         }
       }
     }
