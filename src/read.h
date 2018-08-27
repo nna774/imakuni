@@ -6,6 +6,7 @@
 
 #pragma once
 
+namespace {
 template<typename T>
 struct read_ {
   T operator() (std::istream& fs) {
@@ -50,6 +51,7 @@ struct read_<std::array<T, N>> {
     return arr;
   }
 };
+}
 
 template <typename T>
 read_<T> read{};
