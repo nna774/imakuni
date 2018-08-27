@@ -114,7 +114,7 @@ namespace PNG {
   }
 
   Pixel average(Pixel lhs, Pixel rhs) {
-    auto ave = [](Byte a, Byte b) { return (static_cast<int>(a) + b) / 2; };
+    auto ave = [](Byte a, Byte b) -> Byte { return (static_cast<int>(a) + b) / 2; };
     Pixel p;
     p.r = ave(lhs.r, rhs.r);
     p.g = ave(lhs.g, rhs.g);
