@@ -6,6 +6,7 @@
 
 #include "png.h"
 #include "pnm.h"
+#include "gif.h"
 
 template<class T, class... Args>
 inline std::array<T, sizeof...(Args)> make_array(Args &&... args) {
@@ -14,9 +15,11 @@ inline std::array<T, sizeof...(Args)> make_array(Args &&... args) {
 
 using loadType = std::function<std::unique_ptr<Image>(std::istream&)>;
 using exportType = std::function<std::unique_ptr<Image>(std::unique_ptr<Image>&&, std::ostream&)>;
-auto availableExts = make_array<std::tuple<std::string, loadType, exportType>>(
-  std::make_tuple("png", PNG::load, PNG::exportPNG),
-  std::make_tuple("pnm", PNM::load, PNM::exportPNM)
+using infoType = std::function<void(std::istream&)>;
+auto availableExts = make_array<std::tuple<std::string, loadType, exportType, infoType>>(
+  std::make_tuple("png", PNG::load, PNG::exportPNG, nullptr),
+  std::make_tuple("pnm", PNM::load, PNM::exportPNM, nullptr),
+  std::make_tuple("gif", GIF::load, GIF::exportGIF, GIF::showInfo)
 );
 
 auto hasSuffix = [](std::string const& str, std::string const& suffix) {
@@ -25,8 +28,29 @@ auto hasSuffix = [](std::string const& str, std::string const& suffix) {
 
 int main(int argc, char** argv) {
   std::unique_ptr<Image> img;
-  if(argc < 3) {
+  if(argc < 2) {
+    std::cerr << argv[0] << " infile" << std::endl;
     std::cerr << argv[0] << " infile outfile" << std::endl;
+    return -1;
+  }
+  if (argc == 2) { // show info
+    std::string in{argv[1]};
+    for(auto e: availableExts) {
+      auto ext = std::get<0>(e);
+      auto info = std::get<3>(e);
+      if(hasSuffix(in, "." + ext)) {
+        std::ifstream fs{in, std::ifstream::binary};
+        if (!fs.is_open()) {
+          std::cerr << "failed to open " << in << std::endl;
+          return -1;
+        }
+        if(info != nullptr) {
+          info(fs);
+          return 0;
+        }
+      }
+    }
+    std::cerr << "unknown type" << std::endl;
     return -1;
   }
 

@@ -2,7 +2,7 @@ TARGET := imakuni
 RM := rm -f
 CP := cp -f
 LIB_DIR := ../lib
-SRCS := main.cpp png.cpp pnm.cpp deflate.cpp image.cpp
+SRCS := main.cpp png.cpp pnm.cpp gif.cpp deflate.cpp image.cpp
 OBJS := $(SRCS:%.cpp=%.o)
 DEPS := $(SRCS:%.cpp=%.d)
 CFLAGS := -Wall -Wextra -std=c++17
