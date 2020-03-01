@@ -52,6 +52,18 @@ namespace GIF {
     return GifType::NOTGIF;
   }
 
+  struct Header {
+    GifType type;
+    int width, height;
+    bool gctFollow;
+    int resolution;
+    bool gctSorted;
+    int gctSize;
+    int bgColorIndex;
+    double aspectRatio;
+    std::vector<Pixel> gct;
+  };
+
   std::unique_ptr<Image> load(std::istream& fs) {
     auto t = read_type(fs);
     if(t == GifType::NOTGIF) {
@@ -71,20 +83,39 @@ namespace GIF {
     return static_cast<int>(size[0]) + (static_cast<int>(size[1]) << 8);
   }
 
+  Header readHeader(std::istream& fs, GifType t) {
+    Header header;
+    header.type = t;
+    header.width = readSize(fs);
+    header.height = readSize(fs);
+    auto flags = read<Byte>(fs);
+    header.gctFollow = flags & 0x80;
+    header.resolution = ((flags & 0x70) >> 4) + 1;
+    header.gctSorted = flags & 0x08;
+    header.gctSize = std::pow(2, (flags & 0x07) + 1);
+    auto index = read<Byte>(fs);
+    header.bgColorIndex = header.gctFollow ? index : 0;
+    auto aspect = read<Byte>(fs);
+    header.aspectRatio = aspect ? ((aspect + 15.0) / 64) : 0;
+    header.gct.reserve(header.gctSize);
+    for(int i{}; i < header.gctSize; ++i) {
+      header.gct[i] = read<Pixel>(fs);
+    }
+    return header;
+  }
+
   void showInfo(std::istream& fs) {
     auto t = read_type(fs);
     if(t == GifType::NOTGIF) {
       std::cout << "not gif file" << std::endl;
       return;
     }
+    auto header = readHeader(fs, t);
     std::cout << "this is gif" << std::endl;
     std::cout << "gif type is " << show(t) << std::endl;
-
-    int width{readSize(fs)};
-    int height{readSize(fs)};
-    std::cout << "size is " << width << 'x' << height << std::endl;
-
-    auto flsgs = read<Byte>(fs);
+    std::cout << "size is " << header.width << 'x' << header.height << std::endl;
+    std::cout << "gct follow?: " << header.gctFollow << ", resolution: " << header.resolution << ", sorted?: " << header.gctSorted << ", gctsize: " << header.gctSize << std::endl;
+    std::cout << "bg index: " << header.bgColorIndex << ", aspect: " << header.aspectRatio << std::endl;
 
     return;
   }
