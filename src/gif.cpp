@@ -31,6 +31,7 @@ namespace GIF {
       case GifType::GIF89a:
         return "GIF89a";
       case GifType::NOTGIF:
+      default:
         return "NOTGIF";
     }
   }
