@@ -55,7 +55,7 @@ namespace GIF {
   struct Header {
     GifType type;
     int width, height;
-    bool gctFollow;
+    bool hasGct;
     int resolution;
     bool gctSorted;
     int gctSize;
@@ -89,17 +89,19 @@ namespace GIF {
     header.width = readSize(fs);
     header.height = readSize(fs);
     auto flags = read<Byte>(fs);
-    header.gctFollow = flags & 0x80;
+    header.hasGct = flags & 0x80;
     header.resolution = ((flags & 0x70) >> 4) + 1;
     header.gctSorted = flags & 0x08;
     header.gctSize = std::pow(2, (flags & 0x07) + 1);
     auto index = read<Byte>(fs);
-    header.bgColorIndex = header.gctFollow ? index : 0;
+    header.bgColorIndex = header.hasGct ? index : 0;
     auto aspect = read<Byte>(fs);
     header.aspectRatio = aspect ? ((aspect + 15.0) / 64) : 0;
-    header.gct.reserve(header.gctSize);
-    for(int i{}; i < header.gctSize; ++i) {
-      header.gct[i] = read<Pixel>(fs);
+    if(header.hasGct) {
+      header.gct.reserve(header.gctSize);
+      for(int i{}; i < header.gctSize; ++i) {
+        header.gct[i] = read<Pixel>(fs);
+      }
     }
     return header;
   }
@@ -114,7 +116,7 @@ namespace GIF {
     std::cout << "this is gif" << std::endl;
     std::cout << "gif type is " << show(t) << std::endl;
     std::cout << "size is " << header.width << 'x' << header.height << std::endl;
-    std::cout << "gct follow?: " << header.gctFollow << ", resolution: " << header.resolution << ", sorted?: " << header.gctSorted << ", gctsize: " << header.gctSize << std::endl;
+    std::cout << "gct follow?: " << header.hasGct << ", resolution: " << header.resolution << ", sorted?: " << header.gctSorted << ", gctsize: " << header.gctSize << std::endl;
     std::cout << "bg index: " << header.bgColorIndex << ", aspect: " << header.aspectRatio << std::endl;
 
     return;
