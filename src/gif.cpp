@@ -36,7 +36,7 @@ namespace GIF {
     }
   }
 
-  GifType read_type(std::istream& fs) {
+  GifType readType(std::istream& fs) {
     auto head = read<std::array<Byte, 6>>(fs);
     if(!(head[0] == 'G' && head[1] == 'I' && head[2] == 'F')) {
       return GifType::NOTGIF;
@@ -65,7 +65,7 @@ namespace GIF {
   };
 
   std::unique_ptr<Image> load(std::istream& fs) {
-    auto t = read_type(fs);
+    auto t = readType(fs);
     if(t == GifType::NOTGIF) {
       std::cerr << "not gif file" << std::endl;
       return nullptr;
@@ -105,7 +105,7 @@ namespace GIF {
   }
 
   void showInfo(std::istream& fs) {
-    auto t = read_type(fs);
+    auto t = readType(fs);
     if(t == GifType::NOTGIF) {
       std::cout << "not gif file" << std::endl;
       return;
