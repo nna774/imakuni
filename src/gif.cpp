@@ -65,6 +65,110 @@ namespace GIF {
     std::vector<Pixel> gct;
   };
 
+  Byte static const ImageSeparator{0x2C};
+  Byte static const ExtensionIntroducer{0x21};
+  Byte static const GifTerminator{0x3b};
+
+  struct ImageDescripter {
+    int leftPos;
+    int topPos;
+    int width;
+    int height;
+    bool hasLct;
+    bool interlaced;
+    bool lctSorted;
+    int lctSize;
+    std::vector<Pixel> lct;
+    int lzwSize;
+    std::vector<Byte> imageData;
+  };
+  bool operator==(ImageDescripter, ImageDescripter) { return true; } // !
+  std::string show(ImageDescripter desc) {
+    std::stringstream ss;
+    ss << "Image Descripter" << std::endl;
+    ss << "  hasLct?: " << desc.hasLct;
+
+    return ss.str();
+  }
+
+  Byte static const ApplicationExtensionLabel{0xff};
+  Byte static const GraphicControlExtensionLabel{0xf9};
+
+  struct ImageExtension {
+    int functionCode;
+    std::vector<Byte> data;
+  };
+  bool operator==(ImageExtension, ImageExtension) { return true; } // !
+  std::string show(ImageExtension ext) {
+    std::stringstream ss;
+    ss << "Image Extension code: 0x" << std::hex << ext.functionCode;
+    if(ext.functionCode == 0xfe) {
+      ss << "ext type: comment" << std::endl;
+      for(auto e: ext.data) {
+        ss << static_cast<char>(e);
+      }
+    }
+    return ss.str();
+  }
+  struct ApplicationExtension {
+    std::string identifier;
+    std::array<Byte, 3> authenticationCode;
+    std::vector<Byte> data;
+  };
+  bool operator==(ApplicationExtension, ApplicationExtension) { return true; } // !
+  std::string show(ApplicationExtension ext) {
+    std::stringstream ss;
+    ss << "Application Extension" << std::endl;
+    ss << "  identifier: " << ext.identifier << std::endl;
+    ss << "  auth code: ";
+    for(auto e: ext.authenticationCode) {
+      ss << static_cast<char>(e);
+    }
+    ss << std::endl << "  data: ";
+    for(auto e: ext.data) {
+      ss << static_cast<char>(e);
+    }
+
+    return ss.str();
+  }
+  struct GraphicControlExtension {
+    int disposalMethod;
+    bool expectUserInput;
+    bool hasTransparentColor;
+    int delayTime;
+    int transparentColorIndex;
+  };
+  bool operator==(GraphicControlExtension, GraphicControlExtension) { return true; } // !
+  std::string show(GraphicControlExtension ext) {
+    std::stringstream ss;
+    ss << "GraphicControlExtension" << std::endl;
+    ss << "  disposalMethod: " << ext.disposalMethod << ", expectUserInput?: " << ext.expectUserInput << ", hasTransparent?: " << ext.hasTransparentColor << ", delay: " << ext.delayTime << ", trans index: " << ext.transparentColorIndex;
+
+    return ss.str();
+  }
+
+  class EndOfBlock_ {};
+  class BadBlock_ {};
+  bool operator==(EndOfBlock_, EndOfBlock_) { return true; }
+  bool operator==(BadBlock_, BadBlock_) { return true; }
+  std::string show(EndOfBlock_) {
+    return "end of block";
+  }
+  std::string show(BadBlock_) {
+    return "block read error";
+  }
+
+  using Block = std::variant<
+    ImageDescripter,
+    ImageExtension,
+    ApplicationExtension,
+    GraphicControlExtension,
+    EndOfBlock_,
+    BadBlock_
+  >;
+  Block static const EndOfBlock{EndOfBlock_{}};
+  Block static const BadBlock{BadBlock_{}};
+
   std::unique_ptr<Image> load(std::istream& fs) {
     auto t = readType(fs);
     if(t == GifType::NOTGIF) {
@@ -107,6 +211,122 @@ namespace GIF {
     return header;
   }
 
+  Block readImageDiscripter(std::istream& fs) {
+    ImageDescripter desc;
+    desc.leftPos = readSize(fs);
+    desc.topPos = readSize(fs);
+    desc.width = readSize(fs);
+    desc.height = readSize(fs);
+    auto flags = read<Byte>(fs);
+    desc.hasLct = flags & 0x80;
+    desc.interlaced = flags & 0x40;
+    desc.lctSorted = flags & 0x20;
+    desc.lctSize = std::pow(2, (flags & 0x07) + 1);
+
+    if(desc.hasLct) {
+      desc.lct.reserve(desc.lctSize);
+      for(int i{}; i < desc.lctSize; ++i) {
+        desc.lct[i] = read<Pixel>(fs);
+      }
+    }
+
+    desc.lzwSize = read<Byte>(fs);
+    int blockSize;
+    while(blockSize = read<Byte>(fs), blockSize) {
+      for(int i{}; i < blockSize; ++i) {
+        auto d = read<Byte>(fs);
+        desc.imageData.push_back(d);
+      }
+    }
+
+    return desc;
+  }
+
+  Block readApplicationExtension(std::istream& fs) {
+    auto fixed = read<Byte>(fs);
+    if(fixed != 11) {
+      std::cout << "unexpected size" << std::endl;
+    }
+    ApplicationExtension ext;
+    auto identifier = read<std::array<Byte, 8>>(fs);
+    std::string buf;
+    for(auto e: identifier) { buf += e; }
+    ext.identifier = buf;
+
+    ext.authenticationCode = read<std::array<Byte, 3>>(fs);
+
+    int size;
+    while(size = read<Byte>(fs), size) {
+      auto d = read<Byte>(fs);
+      ext.data.push_back(d);
+    }
+
+    return ext;
+  }
+  Block readGraphicControlExtension(std::istream& fs) {
+    auto fixed = read<Byte>(fs);
+    if(fixed != 4) {
+      std::cout << "unexpected size" << std::endl;
+    }
+
+    GraphicControlExtension ext;
+    auto flags = read<Byte>(fs);
+    ext.disposalMethod = (flags & 0b11100) >> 2;
+    ext.expectUserInput = flags & 0b10;
+    ext.hasTransparentColor = flags & 1;
+    ext.delayTime = readSize(fs);
+    ext.transparentColorIndex = read<Byte>(fs);
+
+    auto terminator = read<Byte>(fs);
+    if(terminator != 0) {
+      std::cout << "?" << std::endl;
+    }
+
+    return ext;
+  }
+
+  Block readImageExtension(std::istream& fs) {
+    ImageExtension ext;
+    ext.functionCode = read<Byte>(fs);
+    if(ext.functionCode == GraphicControlExtensionLabel) {
+      return readGraphicControlExtension(fs);
+    } else if(ext.functionCode == ApplicationExtensionLabel) {
+      return readApplicationExtension(fs);
+    }
+    Byte cnt;
+    while(cnt = read<Byte>(fs), cnt) {
+      for(int i{}; i < cnt; ++i) {
+        auto d = read<Byte>(fs);
+        ext.data.push_back(d);
+      }
+    }
+
+    return ext;
+  }
+
+  Block readBlock(std::istream& fs) {
+    auto sep = read<Byte>(fs);
+    if(sep == ImageSeparator) {
+      return readImageDiscripter(fs);
+    } else if(sep == ExtensionIntroducer) {
+      return readImageExtension(fs);
+    } else if(sep == GifTerminator){
+      return EndOfBlock;
+    } else {
+      std::cout << "unknown block" << std::endl;
+      return BadBlock;
+    }
+  }
+
+  std::vector<Block> readBlocks(std::istream& fs) {
+    Block block;
+    std::vector<Block> blocks;
+    while(block = readBlock(fs), !(block == EndOfBlock || block == BadBlock)) {
+      blocks.push_back(block);
+    }
+    return blocks;
+  }
+
   void showInfo(std::istream& fs) {
     auto t = readType(fs);
     if(t == GifType::NOTGIF) {
@@ -119,8 +339,14 @@ namespace GIF {
     std::cout << "this is gif" << std::endl;
     std::cout << "gif type is " << show(t) << std::endl;
     std::cout << "size is " << header.width << 'x' << header.height << std::endl;
-    std::cout << "gct follow?: " << header.hasGct << ", resolution: " << header.resolution << ", sorted?: " << header.gctSorted << ", gctsize: " << header.gctSize << std::endl;
+    std::cout << "hasGct?: " << header.hasGct << ", resolution: " << header.resolution << ", sorted?: " << header.gctSorted << ", gctsize: " << header.gctSize << std::endl;
     std::cout << "bg index: " << header.bgColorIndex << ", aspect: " << header.aspectRatio << std::endl;
+
+    auto blocks = readBlocks(fs);
+    std::cout << blocks.size() << "blocks" << std::endl;
+    for(auto e: blocks) {
+      std::cout << std::visit([](auto& x) { return show(x); }, e) << std::endl;
+    }
 
     return;
   }
