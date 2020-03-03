@@ -7,6 +7,7 @@
 #include <cctype>
 #include <sstream>
 #include <algorithm>
+#include <optional>
 #include <variant>
 
 #include "gif.h"
@@ -83,7 +84,7 @@ namespace GIF {
     return static_cast<int>(size[0]) + (static_cast<int>(size[1]) << 8);
   }
 
-  Header readHeader(std::istream& fs, GifType t) {
+  std::optional<Header> readHeader(std::istream& fs, GifType t) {
     Header header;
     header.type = t;
     header.width = readSize(fs);
@@ -112,7 +113,9 @@ namespace GIF {
       std::cout << "not gif file" << std::endl;
       return;
     }
-    auto header = readHeader(fs, t);
+    auto optHeader = readHeader(fs, t);
+    if(!optHeader) { return; }
+    auto header = *optHeader;
     std::cout << "this is gif" << std::endl;
     std::cout << "gif type is " << show(t) << std::endl;
     std::cout << "size is " << header.width << 'x' << header.height << std::endl;
