@@ -301,10 +301,9 @@ namespace GIF {
       return readImageExtension(fs);
     } else if(sep == GifTerminator){
       return EndOfBlock{};
-    } else {
-      std::cout << "unknown block" << std::endl;
-      return std::nullopt;
     }
+    std::cout << "unknown block" << std::endl;
+    return std::nullopt;
   }
 
   std::vector<Block> readBlocks(std::istream& fs) {
