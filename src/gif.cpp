@@ -82,7 +82,6 @@ namespace GIF {
     int lzwSize;
     std::vector<Byte> imageData;
   };
-  bool operator==(ImageDescripter, ImageDescripter) { return true; } // !
   std::string show(ImageDescripter desc) {
     std::stringstream ss;
     ss << "Image Descripter" << std::endl;
@@ -98,7 +97,6 @@ namespace GIF {
     int functionCode;
     std::vector<Byte> data;
   };
-  bool operator==(ImageExtension, ImageExtension) { return true; } // !
   std::string show(ImageExtension ext) {
     std::stringstream ss;
     ss << "Image Extension code: 0x" << std::hex << ext.functionCode;
@@ -115,7 +113,6 @@ namespace GIF {
     std::array<Byte, 3> authenticationCode;
     std::vector<Byte> data;
   };
-  bool operator==(ApplicationExtension, ApplicationExtension) { return true; } // !
   std::string show(ApplicationExtension ext) {
     std::stringstream ss;
     ss << "Application Extension" << std::endl;
@@ -138,7 +135,6 @@ namespace GIF {
     int delayTime;
     int transparentColorIndex;
   };
-  bool operator==(GraphicControlExtension, GraphicControlExtension) { return true; } // !
   std::string show(GraphicControlExtension ext) {
     std::stringstream ss;
     ss << "GraphicControlExtension" << std::endl;
@@ -147,14 +143,12 @@ namespace GIF {
     return ss.str();
   }
 
-  class EndOfBlock_ {};
-  class BadBlock_ {};
-  bool operator==(EndOfBlock_, EndOfBlock_) { return true; }
-  bool operator==(BadBlock_, BadBlock_) { return true; }
-  std::string show(EndOfBlock_) {
+  class EndOfBlock {};
+  class BadBlock {};
+  std::string show(EndOfBlock) {
     return "end of block";
   }
-  std::string show(BadBlock_) {
+  std::string show(BadBlock) {
     return "block read error";
   }
 
@@ -163,11 +157,9 @@ namespace GIF {
     ImageExtension,
     ApplicationExtension,
     GraphicControlExtension,
-    EndOfBlock_,
-    BadBlock_
+    EndOfBlock,
+    BadBlock
   >;
-  Block static const EndOfBlock{EndOfBlock_{}};
-  Block static const BadBlock{BadBlock_{}};
 
   std::unique_ptr<Image> load(std::istream& fs) {
     auto t = readType(fs);
@@ -311,17 +303,17 @@ namespace GIF {
     } else if(sep == ExtensionIntroducer) {
       return readImageExtension(fs);
     } else if(sep == GifTerminator){
-      return EndOfBlock;
+      return EndOfBlock{};
     } else {
       std::cout << "unknown block" << std::endl;
-      return BadBlock;
+      return BadBlock{};
     }
   }
 
   std::vector<Block> readBlocks(std::istream& fs) {
     Block block;
     std::vector<Block> blocks;
-    while(block = readBlock(fs), !(block == EndOfBlock || block == BadBlock)) {
+    while(block = readBlock(fs), !(std::holds_alternative<EndOfBlock>(block) || std::holds_alternative<BadBlock>(block))) {
       blocks.push_back(block);
     }
     return blocks;
