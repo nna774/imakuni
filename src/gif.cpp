@@ -142,12 +142,8 @@ namespace GIF {
   }
 
   class EndOfBlock {};
-  class BadBlock {};
   std::string show(EndOfBlock) {
     return "end of block";
-  }
-  std::string show(BadBlock) {
-    return "block read error";
   }
 
   using Block = std::variant<
@@ -155,8 +151,7 @@ namespace GIF {
     ImageExtension,
     ApplicationExtension,
     GraphicControlExtension,
-    EndOfBlock,
-    BadBlock
+    EndOfBlock
   >;
 
   std::unique_ptr<Image> load(std::istream& fs) {
@@ -294,7 +289,7 @@ namespace GIF {
     return ext;
   }
 
-  Block readBlock(std::istream& fs) {
+  std::optional<Block> readBlock(std::istream& fs) {
     auto sep = read<Byte>(fs);
     if(sep == ImageSeparator) {
       return readImageDiscripter(fs);
@@ -304,15 +299,15 @@ namespace GIF {
       return EndOfBlock{};
     } else {
       std::cout << "unknown block" << std::endl;
-      return BadBlock{};
+      return std::nullopt;
     }
   }
 
   std::vector<Block> readBlocks(std::istream& fs) {
-    Block block;
+    std::optional<Block> block;
     std::vector<Block> blocks;
-    while(block = readBlock(fs), !(std::holds_alternative<EndOfBlock>(block) || std::holds_alternative<BadBlock>(block))) {
-      blocks.push_back(block);
+    while(block = readBlock(fs), block && std::holds_alternative<EndOfBlock>(*block)) {
+      blocks.push_back(*block);
     }
     return blocks;
   }
