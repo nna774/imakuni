@@ -309,6 +309,7 @@ namespace GIF {
     while(block = readBlock(fs), block && std::holds_alternative<EndOfBlock>(*block)) {
       blocks.push_back(*block);
     }
+    if(!block) { return std::vector<Block>{}; }
     return blocks;
   }
 
