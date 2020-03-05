@@ -227,10 +227,11 @@ namespace GIF {
     return desc;
   }
 
-  Block readApplicationExtension(std::istream& fs) {
+  std::optional<Block> readApplicationExtension(std::istream& fs) {
     auto fixed = read<Byte>(fs);
     if(fixed != 11) {
       std::cout << "unexpected size" << std::endl;
+      return std::nullopt;
     }
     ApplicationExtension ext;
     auto identifier = read<std::array<Byte, 8>>(fs);
@@ -248,10 +249,11 @@ namespace GIF {
 
     return ext;
   }
-  Block readGraphicControlExtension(std::istream& fs) {
+  std::optional<Block> readGraphicControlExtension(std::istream& fs) {
     auto fixed = read<Byte>(fs);
     if(fixed != 4) {
       std::cout << "unexpected size" << std::endl;
+      return std::nullopt;
     }
 
     GraphicControlExtension ext;
@@ -265,12 +267,13 @@ namespace GIF {
     auto terminator = read<Byte>(fs);
     if(terminator != 0) {
       std::cout << "?" << std::endl;
+      return std::nullopt;
     }
 
     return ext;
   }
 
-  Block readImageExtension(std::istream& fs) {
+  std::optional<Block> readImageExtension(std::istream& fs) {
     ImageExtension ext;
     ext.functionCode = read<Byte>(fs);
     if(ext.functionCode == GraphicControlExtensionLabel) {
@@ -285,6 +288,7 @@ namespace GIF {
         ext.data.push_back(d);
       }
     }
+    std:: cout << "unknown Image Extensino code: " << std::hex << ext.functionCode << std::endl;
 
     return ext;
   }
