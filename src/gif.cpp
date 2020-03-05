@@ -310,7 +310,7 @@ namespace GIF {
   std::vector<Block> readBlocks(std::istream& fs) {
     std::optional<Block> block;
     std::vector<Block> blocks;
-    while(block = readBlock(fs), block && std::holds_alternative<EndOfBlock>(*block)) {
+    while(block = readBlock(fs), block && !std::holds_alternative<EndOfBlock>(*block)) {
       blocks.push_back(*block);
     }
     if(!block) { return std::vector<Block>{}; }
