@@ -22,7 +22,6 @@ namespace GIF {
   enum class GifType {
     GIF87a,
     GIF89a,
-    NOTGIF,
   };
 
   std::string show(GifType t) {
@@ -31,16 +30,15 @@ namespace GIF {
         return "GIF87a";
       case GifType::GIF89a:
         return "GIF89a";
-      case GifType::NOTGIF:
       default:
         return "NOTGIF";
     }
   }
 
-  GifType readType(std::istream& fs) {
+  std::optional<GifType> readType(std::istream& fs) {
     auto head = read<std::array<Byte, 6>>(fs);
     if(!(head[0] == 'G' && head[1] == 'I' && head[2] == 'F')) {
-      return GifType::NOTGIF;
+      return std::nullopt;
     }
 
     if(head[3] == '8' && head[4] == '7' && head[5] == 'a') {
@@ -50,7 +48,7 @@ namespace GIF {
       return GifType::GIF89a;
     }
 
-    return GifType::NOTGIF;
+    return std::nullopt;
   }
 
   struct Header {
@@ -163,7 +161,7 @@ namespace GIF {
 
   std::unique_ptr<Image> load(std::istream& fs) {
     auto t = readType(fs);
-    if(t == GifType::NOTGIF) {
+    if(!t) {
       std::cerr << "not gif file" << std::endl;
       return nullptr;
     }
@@ -321,15 +319,15 @@ namespace GIF {
 
   void showInfo(std::istream& fs) {
     auto t = readType(fs);
-    if(t == GifType::NOTGIF) {
+    if(!t) {
       std::cout << "not gif file" << std::endl;
       return;
     }
-    auto optHeader = readHeader(fs, t);
+    auto optHeader = readHeader(fs, *t);
     if(!optHeader) { return; }
     auto header = *optHeader;
     std::cout << "this is gif" << std::endl;
-    std::cout << "gif type is " << show(t) << std::endl;
+    std::cout << "gif type is " << show(*t) << std::endl;
     std::cout << "size is " << header.width << 'x' << header.height << std::endl;
     std::cout << "hasGct?: " << header.hasGct << ", resolution: " << header.resolution << ", sorted?: " << header.gctSorted << ", gctsize: " << header.gctSize << std::endl;
     std::cout << "bg index: " << header.bgColorIndex << ", aspect: " << header.aspectRatio << std::endl;
