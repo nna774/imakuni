@@ -302,7 +302,8 @@ namespace GIF {
     } else if(sep == GifTerminator){
       return EndOfBlock{};
     }
-    std::cout << "unknown block" << std::endl;
+
+    std::cout << "unknown block separator: " << std::hex << static_cast<int>(sep) << std::endl;
     return std::nullopt;
   }
 
