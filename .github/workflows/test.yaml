@@ -8,3 +8,5 @@ jobs:
       - uses: actions/checkout@v1
       - name: make
         run: make
+      - name: test
+        run: make test
