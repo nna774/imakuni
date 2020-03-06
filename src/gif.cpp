@@ -164,7 +164,7 @@ namespace GIF {
     return nullptr;
   }
 
-  std::unique_ptr<Image> exportGIF(std::unique_ptr<Image>&& img, std::ostream& os) {
+  std::unique_ptr<Image> exportGIF(std::unique_ptr<Image>&& img, std::ostream&) {
     return std::move(img);
   }
 
