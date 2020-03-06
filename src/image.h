@@ -6,6 +6,8 @@
 
 struct Pixel {
   Byte r, g, b;
+  Pixel() : r{}, g{}, b{} {}
+  Pixel(Byte r_, Byte g_, Byte b_) : r{r_}, g{g_}, b{b_} {}
 };
 
 Pixel operator+(Pixel const& lhs, Pixel const& rhs);
