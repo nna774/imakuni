@@ -9,11 +9,13 @@
 #include <algorithm>
 #include <optional>
 #include <variant>
+#include <iomanip>
 
 #include "gif.h"
 #include "byte.h"
 #include "read.h"
 #include "to_string.h"
+#include "lzw.h"
 
 using std::begin;
 using std::end;
@@ -79,13 +81,31 @@ namespace GIF {
     std::vector<Pixel> lct;
     int lzwSize;
     std::vector<Byte> imageData;
+
+    std::vector<Pixel> pixels();
   };
   std::string show(ImageDescripter desc) {
     std::stringstream ss;
     ss << "Image Descripter" << std::endl;
-    ss << "  hasLct?: " << desc.hasLct;
+    ss << "  hasLct?: " << desc.hasLct << std::endl;
+    ss << "  lzwSize: " << desc.lzwSize << std::endl;
+    ss << "  imageLen: " << desc.imageData.size();
+
+    desc.pixels();
 
     return ss.str();
+  }
+  std::vector<Pixel> ImageDescripter::pixels() {
+    std::vector<Pixel> v;
+    /*
+    for(auto e: this->imageData) {
+      std::cout << std::setfill('0') << std::setw(2) << std::hex << static_cast<int>(e);
+    }
+    */
+    auto decoded = LZW::decompress(this->imageData, lzwSize);
+    std::cout << "  decoded size :" << decoded.size() << std::endl;
+
+    return v;
   }
 
   Byte static const ApplicationExtensionLabel{0xff};
