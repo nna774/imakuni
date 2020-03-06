@@ -88,8 +88,11 @@ namespace GIF {
     std::stringstream ss;
     ss << "Image Descripter" << std::endl;
     ss << "  hasLct?: " << desc.hasLct << std::endl;
+    ss << "  interlaced?: " << desc.interlaced << std::endl;
     ss << "  lzwSize: " << desc.lzwSize << std::endl;
-    ss << "  imageLen: " << desc.imageData.size();
+    ss << "  imageLen: " << desc.imageData.size() << std::endl;
+    ss << "  pos: (" << desc.leftPos << ", " << desc.topPos << ")" << std::endl;
+    ss << "  size: (" << desc.width << ", " << desc.height << ")" << std::endl;
 
     desc.pixels();
 
@@ -104,6 +107,10 @@ namespace GIF {
     */
     auto decoded = LZW::decompress(this->imageData, lzwSize);
     std::cout << "  decoded size :" << decoded.size() << std::endl;
+
+    for(size_t i{}; i < decoded.size(); i += 3) {
+      v.emplace_back(decoded[i], decoded[i+1], decoded[i+2]);
+    }
 
     return v;
   }
@@ -144,6 +151,7 @@ namespace GIF {
       ss << static_cast<char>(e);
     }
 
+    ss << std::endl;
     return ss.str();
   }
   struct GraphicControlExtension {
@@ -156,14 +164,14 @@ namespace GIF {
   std::string show(GraphicControlExtension ext) {
     std::stringstream ss;
     ss << "GraphicControlExtension" << std::endl;
-    ss << "  disposalMethod: " << ext.disposalMethod << ", expectUserInput?: " << ext.expectUserInput << ", hasTransparent?: " << ext.hasTransparentColor << ", delay: " << ext.delayTime << ", trans index: " << ext.transparentColorIndex;
+    ss << "  disposalMethod: " << ext.disposalMethod << ", expectUserInput?: " << ext.expectUserInput << ", hasTransparent?: " << ext.hasTransparentColor << ", delay: " << ext.delayTime << ", trans index: " << ext.transparentColorIndex << std::endl;
 
     return ss.str();
   }
 
   class EndOfBlock {};
   std::string show(EndOfBlock) {
-    return "end of block";
+    return "end of block\n";
   }
 
   using Block = std::variant<
@@ -173,6 +181,12 @@ namespace GIF {
     GraphicControlExtension,
     EndOfBlock
   >;
+
+  struct Gif {
+    GifType type;
+    Header header;
+    std::vector<Block> blocks;
+  };
 
   std::unique_ptr<Image> load(std::istream& fs) {
     auto t = readType(fs);
@@ -338,28 +352,46 @@ namespace GIF {
       blocks.push_back(*block);
     }
     if(!block) { return std::vector<Block>{}; }
+    blocks.push_back(EndOfBlock{});
     return blocks;
   }
 
-  void showInfo(std::istream& fs) {
+  std::optional<Gif> readGif(std::istream& fs) {
     auto t = readType(fs);
     if(!t) {
       std::cout << "not gif file" << std::endl;
+      return std::nullopt;
+    }
+    auto header = readHeader(fs, *t);
+    if(!header) { return std::nullopt; }
+    auto blocks = readBlocks(fs);
+    if(blocks.size() == 0) { return std::nullopt; }
+    Gif gif;
+    gif.type = *t;
+    gif.header = *header;
+    gif.blocks = blocks;
+    return gif;
+  }
+
+  void showInfo(std::istream& fs) {
+    auto gif = readGif(fs);
+    if(!gif) {
+      std::cout << "broken gif" << std::endl;
       return;
     }
-    auto optHeader = readHeader(fs, *t);
-    if(!optHeader) { return; }
-    auto header = *optHeader;
+
+    auto t = gif->type;
+    auto header = gif->header;
+    auto const& blocks = gif->blocks;
     std::cout << "this is gif" << std::endl;
-    std::cout << "gif type is " << show(*t) << std::endl;
+    std::cout << "gif type is " << show(t) << std::endl;
     std::cout << "size is " << header.width << 'x' << header.height << std::endl;
     std::cout << "hasGct?: " << header.hasGct << ", resolution: " << header.resolution << ", sorted?: " << header.gctSorted << ", gctsize: " << header.gctSize << std::endl;
     std::cout << "bg index: " << header.bgColorIndex << ", aspect: " << header.aspectRatio << std::endl;
 
-    auto blocks = readBlocks(fs);
     std::cout << blocks.size() << "blocks" << std::endl;
     for(auto e: blocks) {
-      std::cout << std::visit([](auto& x) { return show(x); }, e) << std::endl;
+      std::cout << std::visit([](auto& x) { return show(x); }, e);
     }
 
     return;
