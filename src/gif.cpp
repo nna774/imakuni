@@ -295,6 +295,10 @@ namespace GIF {
 
   std::optional<Block> readBlock(std::istream& fs) {
     auto sep = read<Byte>(fs);
+    while(sep == 0) {
+      std::cout << "skipping zeros(why?)" << std::endl;
+      sep = read<Byte>(fs);
+    }
     if(sep == ImageSeparator) {
       return readImageDiscripter(fs);
     } else if(sep == ExtensionIntroducer) {
