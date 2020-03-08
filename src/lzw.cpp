@@ -18,8 +18,6 @@ namespace LZW {
 
   class ClearCode {};
   class EodCode {};
-  bool operator==(ClearCode, ClearCode) { return true; }
-  bool operator==(EodCode, EodCode) { return true; }
   using Output = std::variant<std::vector<Byte>, ClearCode, EodCode>;
 
   Output static const clearCode{ClearCode{}};
