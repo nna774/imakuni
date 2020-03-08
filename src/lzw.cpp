@@ -120,14 +120,15 @@ namespace LZW {
         currentSize = size + 1;
         currentMax = clear * 2;
         localCode = std::nullopt;
-        std::cout << "got clear code! size: " << currentSize << ", max: " << currentMax << std::endl;
+        // std::cout << "got clear code! size: " << currentSize << ", max: " << currentMax << std::endl;
         continue;
       } else if(std::holds_alternative<EodCode>(output)) {
+        /*
         std::cout << "got end code!" << std::endl;
         std::cout << "  dict size: " << dict.size() << std::endl;
         std::cout << "  pos: (" << pos.byte << ", " << pos.bit << ")" << std::endl;
         std::cout << "  src size; " << src.size() << std::endl;
-
+        */
         break;
       }
       auto out = std::get<std::vector<Byte>>(output);
