@@ -72,8 +72,8 @@ namespace GIF {
   struct ImageDescripter {
     int leftPos;
     int topPos;
-    int width;
-    int height;
+    size_t width;
+    size_t height;
     bool hasLct;
     bool interlaced;
     bool lctSorted;
