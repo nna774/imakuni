@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <variant>
+#include <optional>
 #include <cmath>
 
 #include <iostream>
