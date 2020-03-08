@@ -36,11 +36,6 @@ namespace LZW {
   struct Pos {
     int byte;
     int bit;
-    void advance(size_t size) {
-      int tmp = byte * 8 + bit + size;
-      byte = tmp / 8;
-      bit = tmp % 8;
-    }
   };
   int eat(Pos& pos, size_t size, std::vector<Byte> const& src) { // size は高々12。
     if(pos.bit + size < 8) {
