@@ -77,7 +77,6 @@ namespace LZW {
     int const clear = std::pow(2, size);
     std::vector<Output> dict;
     std::vector<Byte> res;
-    auto res_tail = back_inserter(res);
 
     initDict(clear, dict);
 
@@ -107,34 +106,38 @@ namespace LZW {
         }
         if(!localCode) { std::cout << "never come!" << std::endl; }
         // 入力コードが辞書に無い時は、必ずlocalCodeはvalidである。
-        dict.push_back(std::get<std::vector<Byte>>(dict[*localCode]));
-        std::get<std::vector<Byte>>(dict.back()).push_back(std::get<std::vector<Byte>>(dict[*localCode])[0]);
-      } else {
-        output = dict[n];
-        if(std::holds_alternative<ClearCode>(output)) {
-          initDict(clear, dict);
-          fullDict = false;
-          currentSize = size + 1;
-          currentMax = clear * 2;
-          localCode = std::nullopt;
-          std::cout << "got clear code! size: " << currentSize << ", max: " << currentMax << std::endl;
-          continue;
-        } else if(std::holds_alternative<EodCode>(output)) {
-          std::cout << "got end code!" << std::endl;
-          std::cout << "  dict size: " << dict.size() << std::endl;
-          std::cout << "  pos: (" << pos.byte << ", " << pos.bit << ")" << std::endl;
-          std::cout << "  src size; " << src.size() << std::endl;
-
-          break;
-        }
-        if(localCode) {
-          dict.push_back(dict[*localCode]);
-          std::get<std::vector<Byte>>(dict.back()).push_back(std::get<std::vector<Byte>>(dict[*localCode])[0]);
-        }
+        auto newOne = std::get<std::vector<Byte>>(dict[*localCode]);
+        newOne.push_back(newOne[0]);
+        dict.push_back(newOne);
         localCode = n;
+        copy(begin(newOne), end(newOne), back_inserter(res));
+        continue;
+      }
+      output = dict[n];
+      if(std::holds_alternative<ClearCode>(output)) {
+        initDict(clear, dict);
+        fullDict = false;
+        currentSize = size + 1;
+        currentMax = clear * 2;
+        localCode = std::nullopt;
+        std::cout << "got clear code! size: " << currentSize << ", max: " << currentMax << std::endl;
+        continue;
+      } else if(std::holds_alternative<EodCode>(output)) {
+        std::cout << "got end code!" << std::endl;
+        std::cout << "  dict size: " << dict.size() << std::endl;
+        std::cout << "  pos: (" << pos.byte << ", " << pos.bit << ")" << std::endl;
+        std::cout << "  src size; " << src.size() << std::endl;
+
+        break;
       }
       auto out = std::get<std::vector<Byte>>(output);
-      copy(begin(out), end(out), res_tail);
+      if(localCode) {
+        std::vector<Byte> newOne = std::get<std::vector<Byte>>(dict[*localCode]);
+        newOne.push_back(out[0]);
+        dict.push_back(newOne);
+      }
+      localCode = n;
+      copy(begin(out), end(out), back_inserter(res));
     }
 
     return res;
