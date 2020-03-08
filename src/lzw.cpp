@@ -81,7 +81,7 @@ namespace LZW {
     bool fullDict{};
     while(true) {
       if(!(static_cast<int>(dict.size()) < 4096)) {
-        std::cout << "dict full! expect following clear code!" << std::endl;
+        // std::cout << "dict full! expect following clear code!" << std::endl;
         fullDict = true;
       } else if(static_cast<int>(dict.size()) >= currentMax) { // 辞書のサイズは高々2^12。
         ++currentSize;
