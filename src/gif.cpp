@@ -55,7 +55,7 @@ namespace GIF {
 
   struct Header {
     GifType type;
-    int width, height;
+    size_t width, height;
     bool hasGct;
     int resolution;
     bool gctSorted;
@@ -83,6 +83,10 @@ namespace GIF {
     std::vector<Byte> imageData;
 
     std::vector<Pixel> pixels();
+    std::vector<Pixel> pixelsWithGct(std::vector<Pixel> const& gct);
+
+  private:
+    std::vector<Pixel> pixelsWithColorTable(std::vector<Pixel> const& ct);
   };
   std::string show(ImageDescripter desc) {
     std::stringstream ss;
@@ -94,26 +98,33 @@ namespace GIF {
     ss << "  pos: (" << desc.leftPos << ", " << desc.topPos << ")" << std::endl;
     ss << "  size: (" << desc.width << ", " << desc.height << ")" << std::endl;
 
-    desc.pixels();
+    auto decoded = LZW::decompress(desc.imageData, desc.lzwSize);
 
     return ss.str();
   }
-  std::vector<Pixel> ImageDescripter::pixels() {
+  std::vector<Pixel> ImageDescripter::pixelsWithColorTable(std::vector<Pixel> const& ct) {
     std::vector<Pixel> v;
-    /*
-    for(auto e: this->imageData) {
-      std::cout << std::setfill('0') << std::setw(2) << std::hex << static_cast<int>(e);
-    }
-    */
+    std::cout << "  imagedata size :" << this->imageData.size() << std::endl;
     auto decoded = LZW::decompress(this->imageData, lzwSize);
-    std::cout << "  decoded size :" << decoded.size() << std::endl;
+    std::cout << "  decoded size: " << decoded.size() << std::endl;
 
-    for(size_t i{}; i < decoded.size(); i += 3) {
-      v.emplace_back(decoded[i], decoded[i+1], decoded[i+2]);
+    for(size_t i{}; i < decoded.size(); ++i) {
+      v.push_back(ct[decoded[i]]);
     }
+    std::cout << "pixels count: " << v.size() << std::endl;
 
     return v;
   }
+  std::vector<Pixel> ImageDescripter::pixels() {
+    if(!hasLct) {
+      throw;
+    }
+    return pixelsWithColorTable(this->lct);
+  }
+  std::vector<Pixel> ImageDescripter::pixelsWithGct(std::vector<Pixel> const& gct) {
+    return pixelsWithColorTable(gct);
+  }
+
 
   Byte static const ApplicationExtensionLabel{0xff};
   Byte static const GraphicControlExtensionLabel{0xf9};
@@ -186,16 +197,25 @@ namespace GIF {
     GifType type;
     Header header;
     std::vector<Block> blocks;
+
+    std::unique_ptr<Image> render();
+    int imageDescripterCount() {
+      return count_if(begin(blocks), end(blocks), [](auto e) { return std::holds_alternative<ImageDescripter>(e); });
+    }
   };
 
-  std::unique_ptr<Image> load(std::istream& fs) {
-    auto t = readType(fs);
-    if(!t) {
-      std::cerr << "not gif file" << std::endl;
-      return nullptr;
+  std::unique_ptr<Image> Gif::render() {
+    auto width = header.width;
+    auto height = header.height;
+    std::vector<Pixel> pixels(width * height);
+    auto desc = std::get<ImageDescripter>(*find_if(begin(blocks), end(blocks), [](auto e) { return std::holds_alternative<ImageDescripter>(e); }));
+    if(imageDescripterCount() == 1 && desc.leftPos == 0 && desc.topPos == 0 && desc.width == width && desc.height == height) {
+      std::cout << "its easy!" << std::endl;
+      return std::make_unique<Image>(width, height, desc.hasLct ? desc.pixels() : desc.pixelsWithGct(header.gct));
     }
 
-    return nullptr;
+    std::cout << "bie" << std::endl;
+    return std::make_unique<Image>(width, height, pixels);
   }
 
   std::unique_ptr<Image> exportGIF(std::unique_ptr<Image>&& img, std::ostream&) {
@@ -222,10 +242,10 @@ namespace GIF {
     auto aspect = read<Byte>(fs);
     header.aspectRatio = aspect ? ((aspect + 15.0) / 64) : 0;
     if(header.hasGct) {
-      header.gct.reserve(header.gctSize);
       for(int i{}; i < header.gctSize; ++i) {
-        header.gct[i] = read<Pixel>(fs);
+        header.gct.push_back(read<Pixel>(fs));
       }
+      std::cout << "gct loaded size: " << header.gctSize << std::endl;
     }
     return header;
   }
@@ -252,12 +272,14 @@ namespace GIF {
     desc.lzwSize = read<Byte>(fs);
     int blockSize;
     while(blockSize = read<Byte>(fs), blockSize) {
+      // std::cout << "reading " << static_cast<int>(blockSize) << " bytes" << std::endl;
       for(int i{}; i < blockSize; ++i) {
         auto d = read<Byte>(fs);
         desc.imageData.push_back(d);
       }
     }
 
+    std::cout << desc.imageData.size() << " bytes read" << std::endl;
     return desc;
   }
 
@@ -395,5 +417,11 @@ namespace GIF {
     }
 
     return;
+  }
+
+  std::unique_ptr<Image> load(std::istream& fs) {
+    auto gif = readGif(fs);
+
+    return gif ? gif->render() : nullptr;
   }
 }

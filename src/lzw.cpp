@@ -44,21 +44,32 @@ namespace LZW {
     }
   };
   int eat(Pos& pos, size_t size, std::vector<Byte> const& src) { // size は高々12。
-    int result = src[pos.byte] >> pos.bit;
-    size_t eaten = 8 - pos.bit;
-    size_t restSize = size - eaten;
+    if(pos.bit + size < 8) {
+      int mask = static_cast<int>(std::pow(2, size) - 1) << (pos.bit + 1);
+      int result = (src[pos.byte] & mask) >> (pos.bit + 1);
+      pos.bit += size;
+      return result;
+    }
+    // 次のwordにまたがる事が確定。
+    int eaten = 8 - pos.bit;
+    int result = src[pos.byte] >> pos.bit; // 前のword分。
+    int restSize = size - eaten;
+    if(restSize == 0) {
+      pos.bit = 7;
+      return result;
+    }
     ++pos.byte;
-    if(restSize > 8) {
+    if(restSize >= 8) {
+      // 次のwordはまるまる食べる。
       result += src[pos.byte] << eaten;
       ++pos.byte;
       restSize -= 8;
+      eaten += 8;
     }
-
-    Byte mask = 0xff >> (8 - restSize);
-    Byte masked = src[pos.byte] & mask;
-    result += masked << eaten;
+    // ここでrestSizeは8以下。
+    int mask = std::pow(2, restSize) - 1;
+    result += (src[pos.byte] & mask) << eaten;
     pos.bit = restSize;
-
     return result;
   }
 
@@ -74,14 +85,27 @@ namespace LZW {
     int currentMax = clear * 2;
     std::optional<int> localCode{};
     Pos pos{};
+    bool fullDict{};
     while(true) {
-      if(static_cast<int>(dict.size()) >= currentMax) { // 辞書のサイズは高々2^12。
+      if(!(static_cast<int>(dict.size()) < 4096)) {
+        std::cout << "dict full! expect following clear code!" << std::endl;
+        fullDict = true;
+      } else if(static_cast<int>(dict.size()) >= currentMax) { // 辞書のサイズは高々2^12。
         ++currentSize;
         currentMax *= 2;
+        /*
+        std::cout << "sizeup!" << std::endl;
+        std::cout << "size: " << currentSize << ", max: " << currentMax << std::endl;
+        */
       }
       int n = eat(pos, currentSize, src);
+      // std::cout << n << ", ";
       Output output;
-      if(n >= static_cast<int>(dict.size())) { // 辞書のサイズは高々2^12。
+      if(n >= static_cast<int>(dict.size()) && !fullDict) { // 辞書のサイズは高々2^12。
+        if(n != static_cast<int>(dict.size())) {
+          std::cout << "### too large! something went wrong? n: " << n << ", dict size: " << dict.size() << std::endl;
+        }
+        if(!localCode) { std::cout << "never come!" << std::endl; }
         // 入力コードが辞書に無い時は、必ずlocalCodeはvalidである。
         dict.push_back(std::get<std::vector<Byte>>(dict[*localCode]));
         std::get<std::vector<Byte>>(dict.back()).push_back(std::get<std::vector<Byte>>(dict[*localCode])[0]);
@@ -89,12 +113,18 @@ namespace LZW {
         output = dict[n];
         if(std::holds_alternative<ClearCode>(output)) {
           initDict(clear, dict);
-          std::cout << "got clear code!" << std::endl;
+          fullDict = false;
           currentSize = size + 1;
           currentMax = clear * 2;
           localCode = std::nullopt;
+          std::cout << "got clear code! size: " << currentSize << ", max: " << currentMax << std::endl;
           continue;
         } else if(std::holds_alternative<EodCode>(output)) {
+          std::cout << "got end code!" << std::endl;
+          std::cout << "  dict size: " << dict.size() << std::endl;
+          std::cout << "  pos: (" << pos.byte << ", " << pos.bit << ")" << std::endl;
+          std::cout << "  src size; " << src.size() << std::endl;
+
           break;
         }
         if(localCode) {
