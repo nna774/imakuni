@@ -55,7 +55,7 @@ int main(int argc, char** argv) {
   }
 
   if(std::string{argv[1]} == "convert") {
-    std::string in{argv[1]}, out{argv[2]};
+    std::string in{argv[2]}, out{argv[3]};
     bool okIn{false}, okOut{false};
     for(auto e: availableExts) {
       auto ext = std::get<0>(e);
