@@ -29,13 +29,13 @@ $(TEMPDIR):
 
 test: $(TARGET) $(TEMPDIR)
 	for f in $(TESTS); do \
-	  $(TARGET) $(TESTS_IMAGE_DIR)/$$f.png $(TEMPDIR)/$$f.png; \
+	  $(TARGET) convert $(TESTS_IMAGE_DIR)/$$f.png $(TEMPDIR)/$$f.png; \
 	  $(DIFF) $(TESTS_IMAGE_DIR)/$$f.png $(TEMPDIR)/$$f.png; \
-	  $(TARGET) $(TESTS_IMAGE_DIR)/$$f.png $(TEMPDIR)/$$f.pnm; \
+	  $(TARGET) convert $(TESTS_IMAGE_DIR)/$$f.png $(TEMPDIR)/$$f.pnm; \
 	  $(DIFF) $(TESTS_IMAGE_DIR)/$$f.png $(TEMPDIR)/$$f.pnm; \
-	  $(TARGET) $(TESTS_IMAGE_DIR)/$$f.gif $(TEMPDIR)/$$f.png; \
+	  $(TARGET) convert $(TESTS_IMAGE_DIR)/$$f.gif $(TEMPDIR)/$$f.png; \
 	  $(DIFF) $(TESTS_IMAGE_DIR)/$$f.gif $(TEMPDIR)/$$f.png; \
-	  $(TARGET) $(TESTS_IMAGE_DIR)/$$f.gif $(TEMPDIR)/$$f.pnm; \
+	  $(TARGET) convert $(TESTS_IMAGE_DIR)/$$f.gif $(TEMPDIR)/$$f.pnm; \
 	  $(DIFF) $(TESTS_IMAGE_DIR)/$$f.gif $(TEMPDIR)/$$f.pnm; \
 	done
 

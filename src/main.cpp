@@ -33,8 +33,8 @@ int main(int argc, char** argv) {
     std::cerr << argv[0] << " infile outfile" << std::endl;
     return -1;
   }
-  if (argc == 2) { // show info
-    std::string in{argv[1]};
+  if(std::string{argv[1]} == "show") {
+    std::string in{argv[2]};
     for(auto e: availableExts) {
       auto ext = std::get<0>(e);
       auto info = std::get<3>(e);
@@ -54,55 +54,57 @@ int main(int argc, char** argv) {
     return -1;
   }
 
-  std::string in{argv[1]}, out{argv[2]};
-  bool okIn{false}, okOut{false};
-  for(auto e: availableExts) {
-    auto ext = std::get<0>(e);
-    auto load = std::get<1>(e);
-    if(in == ext + ":-") {
-      img = load(std::cin);
-    } else if (hasSuffix(in, "." + ext)) {
-      std::ifstream fs{in, std::ifstream::binary};
-      if (!fs.is_open()) {
-        std::cerr << "failed to open " << in << std::endl;
-        return -1;
+  if(std::string{argv[1]} == "convert") {
+    std::string in{argv[1]}, out{argv[2]};
+    bool okIn{false}, okOut{false};
+    for(auto e: availableExts) {
+      auto ext = std::get<0>(e);
+      auto load = std::get<1>(e);
+      if(in == ext + ":-") {
+        img = load(std::cin);
+      } else if (hasSuffix(in, "." + ext)) {
+        std::ifstream fs{in, std::ifstream::binary};
+        if (!fs.is_open()) {
+          std::cerr << "failed to open " << in << std::endl;
+          return -1;
+        }
+        img = load(fs);
       }
-      img = load(fs);
-    }
-    if(img) {
-      okIn = true;
-      break;
-    }
-  }
-
-  if(!okIn) {
-    std::cerr << "input file " << in << " is not supported." << std::endl;
-    return -1;
-  }
-
-  if(!img) {
-    std::cerr << "something wrong while loading " << in << "." << std::endl;
-    return -1;
-  }
-
-  for(auto e: availableExts) {
-    auto ext = std::get<0>(e);
-    auto export_ = std::get<2>(e);
-    if(out == ext + ":-") {
-      export_(std::move(img), std::cout);
-      okOut = true;
-    } else if (hasSuffix(out, "." + ext)) {
-      std::ofstream fs{out, std::ofstream::binary};
-      if (!fs.is_open()) {
-        std::cerr << "failed to open " << out << std::endl;
-        return -1;
+      if(img) {
+        okIn = true;
+        break;
       }
-      export_(std::move(img), fs);
-      okOut = true;
     }
-  }
-  if(!okOut) {
-    std::cerr << "output file " << out << " is not supported." << std::endl;
+
+    if(!okIn) {
+      std::cerr << "input file " << in << " is not supported." << std::endl;
+      return -1;
+    }
+
+    if(!img) {
+      std::cerr << "something wrong while loading " << in << "." << std::endl;
+      return -1;
+    }
+
+    for(auto e: availableExts) {
+      auto ext = std::get<0>(e);
+      auto export_ = std::get<2>(e);
+      if(out == ext + ":-") {
+        export_(std::move(img), std::cout);
+        okOut = true;
+      } else if (hasSuffix(out, "." + ext)) {
+        std::ofstream fs{out, std::ofstream::binary};
+        if (!fs.is_open()) {
+          std::cerr << "failed to open " << out << std::endl;
+          return -1;
+        }
+        export_(std::move(img), fs);
+        okOut = true;
+      }
+    }
+    if(!okOut) {
+      std::cerr << "output file " << out << " is not supported." << std::endl;
+    }
   }
 
   return 0;
