@@ -13,7 +13,7 @@ all: build
 build: $(TARGET)
 
 $(TARGET): $(OBJS)
-	$(CXX) -o $(TARGET) $(OBJS)
+	$(CXX) $(CFLAGS) -o $(TARGET) $(OBJS)
 
 %.o: %.cpp
 	$(CXX) $(CFLAGS) -c -MMD -MP $<
