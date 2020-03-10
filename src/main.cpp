@@ -26,6 +26,39 @@ auto hasSuffix = [](std::string const& str, std::string const& suffix) {
   return str.size() >= suffix.size() && str.find(suffix, str.size() - suffix.size()) != std::string::npos;
 };
 
+class FullColorIterator {
+  unsigned int cnt;
+public:
+  FullColorIterator() : cnt{} {}
+  FullColorIterator(bool ended_) : cnt{static_cast<unsigned int>(ended_) * 0x1000000} {}
+  Pixel operator*() {
+    return Pixel{
+      static_cast<Byte>((cnt & 0xFF0000) >> 16),
+      static_cast<Byte>((cnt & 0x00FF00) >> 8),
+      static_cast<Byte>((cnt & 0x0000FF) >> 0),
+    };
+  }
+  bool operator==(FullColorIterator it) { return this->cnt == it.cnt; }
+  bool operator!=(FullColorIterator it) { return !(*this == it); }
+  FullColorIterator operator++() { return ++(this->cnt); }
+  using difference_type = int;
+  using value_type = Pixel;
+  using pointer = Pixel*;
+  using reference = Pixel&;
+  using iterator_category = std::input_iterator_tag;
+  static FullColorIterator const end;
+};
+FullColorIterator const FullColorIterator::end = FullColorIterator{true};
+
+std::unique_ptr<Image> testFullcolor() {
+  size_t width{4096};
+  size_t height{0x1000000 / width};
+  std::vector<Pixel> pixels(0x1000000);
+  copy(FullColorIterator{}, FullColorIterator::end, begin(pixels));
+
+  return std::make_unique<Image>(width, height, pixels);
+}
+
 int main(int argc, char** argv) {
   std::unique_ptr<Image> img;
   if(argc < 2) {
@@ -57,12 +90,15 @@ int main(int argc, char** argv) {
   if(std::string{argv[1]} == "convert") {
     std::string in{argv[2]}, out{argv[3]};
     bool okIn{false}, okOut{false};
+    if(in == "fullcolor:") {
+      img = testFullcolor();
+    }
     for(auto e: availableExts) {
       auto ext = std::get<0>(e);
       auto load = std::get<1>(e);
       if(in == ext + ":-") {
         img = load(std::cin);
-      } else if (hasSuffix(in, "." + ext)) {
+      } else if(hasSuffix(in, "." + ext)) {
         std::ifstream fs{in, std::ifstream::binary};
         if (!fs.is_open()) {
           std::cerr << "failed to open " << in << std::endl;
