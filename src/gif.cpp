@@ -108,8 +108,24 @@ namespace GIF {
     auto decoded = LZW::decompress(this->imageData, lzwSize);
     std::cout << "  decoded size: " << decoded.size() << std::endl;
 
-    for(size_t i{}; i < decoded.size(); ++i) {
-      v.push_back(ct[decoded[i]]);
+    if(this->interlaced) {
+      size_t offset{};
+      v.resize(this->width * this->height);
+      auto interlace = [&](size_t begin, size_t step) {
+        for(size_t h{begin}; h < this->height; h += step) {
+          for(size_t w{}; w < this->width; ++w) {
+            v[(h * this->width) + w] = ct[decoded[offset++]];
+          }
+        }
+      };
+      interlace(0, 8);
+      interlace(4, 8);
+      interlace(2, 4);
+      interlace(1, 2);
+    } else {
+      for(size_t i{}; i < decoded.size(); ++i) {
+        v.push_back(ct[decoded[i]]);
+      }
     }
     std::cout << "pixels count: " << v.size() << std::endl;
 
