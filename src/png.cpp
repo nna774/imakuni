@@ -535,4 +535,16 @@ namespace PNG {
     putChunks(os, chunks);
     return std::move(img);
   }
+
+  void showInfo(std::istream& fs) {
+    if(!readHeader(fs)) {
+      std::cerr << "not png file" << std::endl;
+      return;
+    }
+
+    std::vector<std::unique_ptr<Chunk>> chunks = readChunks(fs);
+    for(auto const& e: chunks) {
+      std::visit([](auto const& e){ std::cout << e.type() << std::endl; }, *e);
+    }
+  }
 }

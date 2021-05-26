@@ -17,7 +17,7 @@ using loadType = std::function<std::unique_ptr<Image>(std::istream&)>;
 using exportType = std::function<std::unique_ptr<Image>(std::unique_ptr<Image>&&, std::ostream&)>;
 using infoType = std::function<void(std::istream&)>;
 auto availableExts = make_array<std::tuple<std::string, loadType, exportType, infoType>>(
-  std::make_tuple("png", PNG::load, PNG::exportPNG, nullptr),
+  std::make_tuple("png", PNG::load, PNG::exportPNG, PNG::showInfo),
   std::make_tuple("pnm", PNM::load, PNM::exportPNM, nullptr),
   std::make_tuple("gif", GIF::load, GIF::exportGIF, GIF::showInfo)
 );
