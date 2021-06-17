@@ -7,6 +7,7 @@
 #include "png.h"
 #include "pnm.h"
 #include "gif.h"
+#include "jpg.h"
 
 template<class T, class... Args>
 inline std::array<T, sizeof...(Args)> make_array(Args &&... args) {
@@ -19,7 +20,8 @@ using infoType = std::function<void(std::istream&)>;
 auto availableExts = make_array<std::tuple<std::string, loadType, exportType, infoType>>(
   std::make_tuple("png", PNG::load, PNG::exportPNG, PNG::showInfo),
   std::make_tuple("pnm", PNM::load, PNM::exportPNM, nullptr),
-  std::make_tuple("gif", GIF::load, GIF::exportGIF, GIF::showInfo)
+  std::make_tuple("gif", GIF::load, GIF::exportGIF, GIF::showInfo),
+  std::make_tuple("jpg", nullptr, nullptr, JPG::showInfo)
 );
 
 auto hasSuffix = [](std::string const& str, std::string const& suffix) {
