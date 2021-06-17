@@ -62,8 +62,8 @@ std::unique_ptr<Image> testFullcolor() {
 int main(int argc, char** argv) {
   std::unique_ptr<Image> img;
   if(argc < 2) {
-    std::cerr << argv[0] << " infile" << std::endl;
-    std::cerr << argv[0] << " infile outfile" << std::endl;
+    std::cerr << argv[0] << " show infile" << std::endl;
+    std::cerr << argv[0] << " convert infile outfile" << std::endl;
     return -1;
   }
   if(std::string{argv[1]} == "show") {
