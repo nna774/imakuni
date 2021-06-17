@@ -166,10 +166,11 @@ namespace JPG {
       return readRST(fs);
     case SegmentType::EOI:
       return EOISegment{};
+    default:
+      auto len = readLength(fs);
+      fs.ignore(len - 2);
+      return UnknownSegment{len};
     }
-    auto len = readLength(fs);
-    fs.ignore(len - 2);
-    return UnknownSegment{len};
   }
 
   std::optional<Jpg> readJpg(std::istream& fs) {
