@@ -5,7 +5,8 @@ LIB_DIR := ../lib
 SRCS := main.cpp png.cpp pnm.cpp gif.cpp deflate.cpp lzw.cpp image.cpp jpg.cpp
 OBJS := $(SRCS:%.cpp=%.o)
 DEPS := $(SRCS:%.cpp=%.d)
-CFLAGS := -Wall -Wextra -std=c++17 -g3
+CFLAGS := -std=c++17 -g3
+CFLAGSWITHWARN := -Wall -Wextra $(CFLAGS)
 -include $(DEPS)
 
 all: build
@@ -13,10 +14,10 @@ all: build
 build: $(TARGET)
 
 $(TARGET): $(OBJS)
-	$(CXX) $(CFLAGS) -o $(TARGET) $(OBJS)
+	$(CXX) $(CFLAGSWITHWARN) -o $(TARGET) $(OBJS)
 
 %.o: %.cpp
-	$(CXX) $(CFLAGS) -c -MMD -MP $<
+	$(CXX) $(CFLAGSWITHWARN) -c -MMD -MP $<
 
 deflate.o:
 	$(CXX) $(CFLAGS) -I$(LIB_DIR) -c -MMD -MP deflate.cpp
