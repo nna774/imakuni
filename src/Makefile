@@ -19,7 +19,7 @@ $(TARGET): $(OBJS)
 	$(CXX) $(CFLAGS) -c -MMD -MP $<
 
 deflate.o:
-	$(CXX) -I$(LIB_DIR) -c -MMD -MP deflate.cpp
+	$(CXX) $(CFLAGS) -I$(LIB_DIR) -c -MMD -MP deflate.cpp
 
 clean:
 	$(RM) $(TARGET) $(OBJS) $(DEPS)
