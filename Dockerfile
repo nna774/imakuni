@@ -1,4 +1,4 @@
-FROM gcc:8
+FROM gcc:latest
 
 WORKDIR /workspace
 
