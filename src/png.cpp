@@ -21,13 +21,13 @@ using std::end;
 namespace PNG {
   class BaseChunk {
   public:
-    BaseChunk(std::string const& type) : _type{type} {}
-    std::string const& type() const { return _type; }
-    bool isCritical() { return std::isupper(_type[0]); }
-    bool isPublic() { return std::isupper(_type[1]); }
-    bool isSafe() { return std::isupper(_type[3]); }
+    BaseChunk(std::string const& t) : type_{t} {}
+    std::string const& type() const { return type_; }
+    bool isCritical() { return std::isupper(type_[0]); }
+    bool isPublic() { return std::isupper(type_[1]); }
+    bool isSafe() { return std::isupper(type_[3]); }
   private:
-    std::string const _type;
+    std::string const type_;
   };
 
   class IHDRChunk {
@@ -41,54 +41,54 @@ namespace PNG {
       Byte filter,
       Byte interlace
       ) :
-      _width{width},
-      _height{height},
-      _depth{depth},
-      _colorType{colorType},
-      _compression{compression},
-      _filter{filter},
-      _interlace{interlace}
+      width_{width},
+      height_{height},
+      depth_{depth},
+      colorType_{colorType},
+      compression_{compression},
+      filter_{filter},
+      interlace_{interlace}
     {}
-    std::string type() const { return _type; }
-    size_t width() const { return _width; }
-    size_t height() const  { return _height; }
-    Byte depth() const  { return _depth; }
-    Byte colorType() const  { return _colorType; }
-    Byte compression() const  { return _compression; }
-    Byte filter() const  { return _filter; }
-    Byte interlace() const { return _interlace; }
+    std::string type() const { return type_; }
+    size_t width() const { return width_; }
+    size_t height() const  { return height_; }
+    Byte depth() const  { return depth_; }
+    Byte colorType() const  { return colorType_; }
+    Byte compression() const  { return compression_; }
+    Byte filter() const  { return filter_; }
+    Byte interlace() const { return interlace_; }
   private:
-    static std::string const _type;
-    size_t const _width;
-    size_t const _height;
-    Byte const _depth;
-    Byte const _colorType;
-    Byte const _compression;
-    Byte const _filter;
-    Byte const _interlace;
+    static std::string const type_;
+    size_t const width_;
+    size_t const height_;
+    Byte const depth_;
+    Byte const colorType_;
+    Byte const compression_;
+    Byte const filter_;
+    Byte const interlace_;
   };
-  std::string const IHDRChunk::_type = "IDAT";
+  std::string const IHDRChunk::type_ = "IDAT";
 
   class IDATChunk {
   public:
-    IDATChunk(std::vector<Byte> const& data) : _data{data} {}
-    IDATChunk(std::vector<Byte>&& data) : _data{std::move(data)} {}
-    std::vector<Byte> const& data() const { return _data; }
-    std::string type() const { return _type; }
+    IDATChunk(std::vector<Byte> const& data) : data_{data} {}
+    IDATChunk(std::vector<Byte>&& data) : data_{std::move(data)} {}
+    std::vector<Byte> const& data() const { return data_; }
+    std::string type() const { return type_; }
   private:
-    static std::string const _type;
-    std::vector<Byte> const _data;
+    static std::string const type_;
+    std::vector<Byte> const data_;
   };
-  std::string const IDATChunk::_type = "IDAT";
+  std::string const IDATChunk::type_ = "IDAT";
 
   class iTXtChunk {
   public:
-    std::string type() const { return _type; }
+    std::string type() const { return type_; }
     std::string show_() const { return "TODO: helo"; }
   private:
-    static std::string const _type;
+    static std::string const type_;
   };
-  std::string const iTXtChunk::_type = "iTXt";
+  std::string const iTXtChunk::type_ = "iTXt";
 
   using Chunk = std::variant<BaseChunk, IHDRChunk, IDATChunk, iTXtChunk>;
 
