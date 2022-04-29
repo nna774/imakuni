@@ -84,7 +84,7 @@ namespace PNG {
   class iTXtChunk {
   public:
     std::string type() const { return type_; }
-    std::string show_() const { return "TODO: helo"; }
+    std::string show() const { return type_ + " TODO: helo"; }
   private:
     static std::string const type_;
   };
