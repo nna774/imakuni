@@ -110,16 +110,16 @@ namespace PNG {
   std::array<uint32_t, 256> constexpr const crcTable = makeCrcTable();
 
   std::array<Byte, 4> crc(std::vector<Byte> const& data) {
-    uint32_t _crc = UINT32_C(0xffffffff);
+    uint32_t crc_ = UINT32_C(0xffffffff);
     for(auto b: data) {
-      _crc = crcTable[(_crc ^ b) & 0xff] ^ (_crc >> 8);
+      crc_ = crcTable[(crc_ ^ b) & 0xff] ^ (crc_ >> 8);
     }
-    _crc = ~_crc;
+    crc_ = ~crc_;
     std::array<Byte, 4> c{};
-    c[3] = _crc & 0xff;
-    c[2] = (_crc & 0xff00) >> 8;
-    c[1] = (_crc & 0xff0000) >> 16;
-    c[0] = (_crc & 0xff000000) >> 24;
+    c[3] = crc_ & 0xff;
+    c[2] = (crc_ & 0xff00) >> 8;
+    c[1] = (crc_ & 0xff0000) >> 16;
+    c[0] = (crc_ & 0xff000000) >> 24;
     return c;
   }
 
