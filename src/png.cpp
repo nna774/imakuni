@@ -58,7 +58,7 @@ namespace PNG {
     Byte filter() const  { return filter_; }
     Byte interlace() const { return interlace_; }
   private:
-    static std::string const type_;
+    inline static std::string const type_ = "IHDR";
     size_t const width_;
     size_t const height_;
     Byte const depth_;
@@ -67,7 +67,6 @@ namespace PNG {
     Byte const filter_;
     Byte const interlace_;
   };
-  std::string const IHDRChunk::type_ = "IDAT";
 
   class IDATChunk {
   public:
@@ -76,19 +75,17 @@ namespace PNG {
     std::vector<Byte> const& data() const { return data_; }
     std::string type() const { return type_; }
   private:
-    static std::string const type_;
+    inline static std::string const type_ = "IDAT";
     std::vector<Byte> const data_;
   };
-  std::string const IDATChunk::type_ = "IDAT";
 
   class iTXtChunk {
   public:
     std::string type() const { return type_; }
     std::string show() const { return type_ + " TODO: helo"; }
   private:
-    static std::string const type_;
+    inline static std::string const type_ = "iTXt";
   };
-  std::string const iTXtChunk::type_ = "iTXt";
 
   using Chunk = std::variant<BaseChunk, IHDRChunk, IDATChunk, iTXtChunk>;
 
