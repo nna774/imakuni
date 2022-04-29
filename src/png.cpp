@@ -49,7 +49,7 @@ namespace PNG {
       _filter{filter},
       _interlace{interlace}
     {}
-    std::string const& type() const { return _type; }
+    std::string type() const { return _type; }
     size_t width() const { return _width; }
     size_t height() const  { return _height; }
     Byte depth() const  { return _depth; }
@@ -74,7 +74,7 @@ namespace PNG {
     IDATChunk(std::vector<Byte> const& data) : _data{data} {}
     IDATChunk(std::vector<Byte>&& data) : _data{std::move(data)} {}
     std::vector<Byte> const& data() const { return _data; }
-    std::string const& type() const { return _type; }
+    std::string type() const { return _type; }
   private:
     static std::string const _type;
     std::vector<Byte> const _data;
@@ -219,8 +219,8 @@ namespace PNG {
     return chunk;
   }
 
-  std::string const& type(Chunk const& c) {
-    return std::visit([](auto const& arg) -> std::string const& { return arg.type(); }, c);
+  std::string type(Chunk const& c) {
+    return std::visit([](auto const& arg) -> std::string { return arg.type(); }, c);
   }
 
   std::vector<std::unique_ptr<Chunk>> readChunks(std::istream& fs) {
