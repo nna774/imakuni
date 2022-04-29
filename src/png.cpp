@@ -80,7 +80,16 @@ namespace PNG {
     std::vector<Byte> const _data;
   };
 
-  using Chunk = std::variant<BaseChunk, IHDRChunk, IDATChunk>;
+  class iTXtChunk {
+  public:
+    std::string type() const { return _type; }
+    std::string show_() const { return "TODO: helo"; }
+  private:
+    static std::string const _type;
+  };
+  std::string const iTXtChunk::_type = "iTXt";
+
+  using Chunk = std::variant<BaseChunk, IHDRChunk, IDATChunk, iTXtChunk>;
 
   constexpr std::array<uint32_t, 256> makeCrcTable() {
     std::array<uint32_t, 256> table{};
