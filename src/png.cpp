@@ -211,10 +211,10 @@ namespace PNG {
       std::cerr << "size: " << size << std::endl;
       chunk = std::make_unique<Chunk>(type);
     }
-    auto const _crc = read<std::array<Byte, 4>>(fs);
+    auto const crc_ = read<std::array<Byte, 4>>(fs);
     std::array<Byte, 4> expected = crc(buf);
-    if(_crc != expected) {
-      std::cerr << "crc mismatched at IEND chunk(expected " << to_str(expected) << ", but got " << to_str(_crc) << ")." << std::endl;
+    if(crc_ != expected) {
+      std::cerr << "crc mismatched at IEND chunk(expected " << to_str(expected) << ", but got " << to_str(crc_) << ")." << std::endl;
     }
     return chunk;
   }
