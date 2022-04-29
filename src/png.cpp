@@ -41,7 +41,6 @@ namespace PNG {
       Byte filter,
       Byte interlace
       ) :
-      _type{"IHDR"},
       _width{width},
       _height{height},
       _depth{depth},
@@ -59,7 +58,7 @@ namespace PNG {
     Byte filter() const  { return _filter; }
     Byte interlace() const { return _interlace; }
   private:
-    std::string const _type;
+    static std::string const _type;
     size_t const _width;
     size_t const _height;
     Byte const _depth;
@@ -68,17 +67,19 @@ namespace PNG {
     Byte const _filter;
     Byte const _interlace;
   };
+  std::string const IHDRChunk::_type = "IDAT";
 
   class IDATChunk {
   public:
-    IDATChunk(std::vector<Byte> const& data) : _type{"IDAT"}, _data{data} {}
-    IDATChunk(std::vector<Byte>&& data) : _type{"IDAT"}, _data{std::move(data)} {}
+    IDATChunk(std::vector<Byte> const& data) : _data{data} {}
+    IDATChunk(std::vector<Byte>&& data) : _data{std::move(data)} {}
     std::vector<Byte> const& data() const { return _data; }
     std::string const& type() const { return _type; }
   private:
-    std::string const _type;
+    static std::string const _type;
     std::vector<Byte> const _data;
   };
+  std::string const IDATChunk::_type = "IDAT";
 
   class iTXtChunk {
   public:
