@@ -185,6 +185,10 @@ namespace PNG {
     return std::make_unique<Chunk>(std::move(data));
   }
 
+  std::unique_ptr<Chunk> readiTXt(std::vector<Byte>::const_iterator& it, size_t size) {
+    return std::make_unique<Chunk>(iTXtChunk{});
+  }
+
   std::unique_ptr<Chunk> readChunk(std::istream& fs) {
     size_t const size = readSize(fs);
     // 4 is type
@@ -199,6 +203,8 @@ namespace PNG {
       chunk = readIDAT(it, size);
     } else if(type == "IEND") {
       chunk = std::make_unique<Chunk>(BaseChunk{"IEND"});
+    } else if(type == "iTXt") {
+      chunk = readiTXt(it, size);
     } else {
       std::cerr << "unknown chunk type: " << type << std::endl;
       std::cerr << "size: " << size << std::endl;
@@ -545,6 +551,13 @@ namespace PNG {
     return std::move(img);
   }
 
+  std::string showChunk(auto const& c) {
+    if constexpr(requires { c.show(); }) {
+      return c.show();
+    }
+    return c.type();
+  }
+
   void showInfo(std::istream& fs) {
     if(!readHeader(fs)) {
       std::cerr << "not png file" << std::endl;
@@ -553,7 +566,7 @@ namespace PNG {
 
     std::vector<std::unique_ptr<Chunk>> chunks = readChunks(fs);
     for(auto const& e: chunks) {
-      std::visit([](auto const& e){ std::cout << e.type() << std::endl; }, *e);
+      std::visit([](auto const& e){ std::cout << showChunk(e) << std::endl; }, *e);
     }
   }
 }
