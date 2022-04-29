@@ -371,6 +371,7 @@ namespace PNG {
                                             std::vector<Pixel>::const_iterator pre_s) {
     size_t size = std::distance(s, g);
     std::vector<std::vector<Pixel>> filters(5, std::vector<Pixel>(size));
+    // とりあえず全てのフィルタの動作が実装されていて、全て実行されているが、最後に1つの結果しか使っていない。
 
     // none filter
     std::copy(s, g, begin(filters[0]));
