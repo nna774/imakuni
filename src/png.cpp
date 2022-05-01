@@ -81,10 +81,13 @@ namespace PNG {
 
   class iTXtChunk {
   public:
+    iTXtChunk(std::string_view t) : text_{t} {}
+    std::string text() { return text_; }
     std::string type() const { return type_; }
-    std::string show() const { return type_ + " TODO: helo"; }
+    std::string show() const { return type_ + ": " + text_; }
   private:
     inline static std::string const type_ = "iTXt";
+    std::string const text_;
   };
 
   using Chunk = std::variant<BaseChunk, IHDRChunk, IDATChunk, iTXtChunk>;
@@ -184,7 +187,9 @@ namespace PNG {
   }
 
   std::unique_ptr<Chunk> readiTXt(std::vector<Byte>::const_iterator& it, size_t size) {
-    return std::make_unique<Chunk>(iTXtChunk{});
+    return std::make_unique<Chunk>(
+      iTXtChunk{std::string{it, it + size}}
+    );
   }
 
   std::unique_ptr<Chunk> readChunk(std::istream& fs) {
